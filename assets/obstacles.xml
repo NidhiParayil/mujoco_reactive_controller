@@ -1,0 +1,134 @@
+<mujoco>
+<worldbody>
+<!-- <joint kind="main" damping="60"/> for velocity alone to fail and force to do better -->
+<!-- refernce objects -->
+<body name = "referance">
+<geom type="box" pos="0.6 -.5 0.2" size=".005 .005 .3" rgba="0 .9 0 .5"/>
+<geom type="box"  pos="0.6 0.5 0.2" size=".005 .005 .3" rgba="0 .9 0 .5"/>
+<geom type="box" pos="-.2 -.5 0.2" size=".005 .005 .3" rgba="0 .9 0 .5"/>
+<geom type="box" pos="-.2 0.5 0.2" size=".005 .005 .3" rgba="0 .9 0 .5"/>
+<geom type="box"  pos="0.2 0 .1"  size=".5 .5 .005" rgba="0 .9 0 .5"/>
+<geom type="sphere"  size=".01" rgba="1 0 0 .5"/>
+<body name ="tree" pos="10.3 -0.05 .3" quat="1 0 1. 0" >
+    <composite prefix="main branch" type="grid" count="30 1 1" spacing="0.016" offset="0 0 0">
+    <joint kind="main" damping="100"/>
+    <tendon kind="main" width="0.01"/>
+    <geom size=".015" rgba=".3 .17 .14 1"/>
+    <pin coord="10"/>
+    <pin coord="8"/>
+    </composite>
+    <body name="side branch" pos="0. -0.01 .0" quat="0.7 0. 0. 0.7" >
+        <composite prefix="side branch" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+        <tendon kind="main" width="0.01"/>
+        <geom size=".015" rgba=".3 .17 .14 1"/>
+        <pin coord="5"/>
+        <pin coord="6"/>
+        </composite>
+    </body>
+    <body name="side branch2" pos="-.1 -0.01 .0" quat="0.7 0. 0. 0.7" >
+        <composite prefix="side branch2" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+        <tendon kind="main" width="0.01"/>
+        <geom size=".015" rgba=".3 .17 .14 1"/>
+        <pin coord="5"/>
+        <pin coord="6"/>
+        </composite>
+    </body>
+    <body name="side branch3" pos="-.2 -0.01 .0" quat="0.7 0. 0. 0.7" >
+            <composite prefix="side branch3" type="grid" count="10 1 1" spacing="0.016" offset="0 0 0">
+            <joint kind="main" damping="100"/>
+            <tendon kind="main" width="0.01"/>
+            <geom size=".015" rgba=".3 .17 .14 1"/>
+            <pin coord="5"/>
+            <pin coord="6"/>
+            </composite>
+    </body>
+         <!-- <body name ="leaf2" pos="-0.1 -0.18 0." euler="1.2 .0 0." >
+            <composite prefix="leaf2" type="grid" count="3 4 1" flatinertia = "0.0" spacing="0.025" offset="0 0 0">
+
+            <geom size=".012" rgba="0 .5 0 1"/>
+            <pin coord="1"/>
+            </composite>
+    
+        </body>
+
+
+
+
+         <body name ="leaf3" pos="-0.05 0.22 0." euler="0 0 0" >
+          <composite prefix="leaf3" type="grid" count="3 4 1" flatinertia = "0.0" spacing="0.022" offset="0 0 0">
+
+            <geom size=".012" rgba="0 .5 0 1"/>
+            <pin coord="1"/>
+            </composite>
+    
+        </body> -->
+
+
+         <!-- <body name ="leaf1" pos="-0.27 -0.01 0." euler="1.2 .0 0." >
+            <composite prefix="leaf1" type="grid" count="3 4 1" flatinertia = "0.0" spacing="0.022" offset="0 0 0">
+            <joint kind="main" damping=".0001"/>
+            <geom size=".012" rgba="0 .5 0 1"/>
+            <pin coord="1"/>
+            </composite>
+    
+        </body> -->
+    
+</body>
+<body name ="tree2" pos="1.36 -0.05 .3" quat="1 0 1. 0" >
+    <composite prefix="main branch2" type="grid" count="30 1 1" spacing="0.016" offset="0 0 0">
+    <joint kind="main" damping="100"/>
+    <tendon kind="main" width="0.01"/>
+    <geom size=".015" rgba=".3 .17 .14 1"/>
+    <pin coord="10"/>
+    <pin coord="8"/>
+    </composite>
+    <body name="side branch21" pos="0. -0.01 .0" quat="0.7 0. 0. 0.7" >
+        <composite prefix="side branch21" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+        <tendon kind="main" width="0.01"/>
+        <geom size=".015" rgba=".3 .17 .14 1"/>
+        <pin coord="5"/>
+        <pin coord="6"/>
+        </composite>
+    </body>
+    <body name="side branch22" pos="-.1 -0.01 .0" quat="0.7 0. 0. 0.7" >
+        <composite prefix="side branch22" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+        <tendon kind="main" width="0.01"/>
+        <geom size=".015" rgba=".3 .17 .14 1"/>
+        <pin coord="5"/>
+        <pin coord="6"/>
+        </composite>
+    </body>
+    <body name="side branch23" pos="-.2 -0.01 .0" quat="0.7 0. 0. 0.7" >
+        <composite prefix="side branch23" type="grid" count="10 1 1" spacing="0.016" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+        <tendon kind="main" width="0.01"/>
+        <geom size=".015" rgba=".3 .17 .14 1"/>
+        <pin coord="5"/>
+        <pin coord="6"/>
+        </composite>
+    </body>
+
+</body>
+</body>
+
+
+<!-- <body name="cube_free" pos=".5 0 .16">
+    <geom type="sphere" size=".13" rgba="0.6 0.0 0.0 1" mass = "100 " />
+    <joint name="free" type="free"/>
+
+</body>  
+         
+<body name="cube2_free" pos=".5 .2 .16">
+    <geom type="sphere" size=".09" rgba="0.6 0.0 0.0 1" mass = "50 " />
+    <joint name="free2" type="free"/>
+    
+</body>  
+          -->
+
+
+</worldbody>
+</mujoco>

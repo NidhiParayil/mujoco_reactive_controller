@@ -1,0 +1,82 @@
+<mujoco>
+<worldbody>
+
+<!-- refernce objects -->
+<body name = "referance1">
+
+ <body name ="main branch1" pos="0.4 0.1 0" euler="0 -1.5 0" >
+    <body name="CB0" pos="0 0. 0" euler="0 0 0">
+        <composite type="rope" count="20 1 1" spacing="0.043" offset="0 0.01 0" prefix="C">
+        <joint kind="main" damping="80"/>
+          <geom type="capsule" size=".01 .02" rgba=".18 .1 .03 1"/>
+        </composite>
+            <body name="AB0" pos="0 0. 0" euler="0. 0.7 0">
+            <composite type="rope" count="10 1 1" spacing="0.043" offset="0 0 0" prefix="A">
+            <joint kind="main" damping="20"/>
+            <geom type="capsule" size=".01 .02" rgba=".18 .1 .03 1"/>
+            <!-- <pin coord="1"/> -->
+            </composite>
+            </body>
+
+            <!-- <body name="DB0" pos="0.2 0. 0." euler="0. 0. 0.7">
+            <composite type="rope" count="10 1 1" spacing="0.043" offset="0 0 0" prefix="D">
+            <joint kind="main" damping="10"/>
+            <geom type="capsule" size=".01 .02" rgba=".18 .2 .03 1"/>
+            </composite>
+            </body>
+
+            <body name="EB0" pos=".4 0. 0" euler="0. -0.7 0">
+            <composite type="rope" count="10 1 1" spacing="0.043" offset="0 0 0" prefix="E">
+            <joint kind="main" damping="10"/>
+            <geom type="capsule" size=".01 .02" rgba=".18 .2 .03 1"/>
+            </composite>
+            </body> -->
+
+            <body name="FB0" pos="0.6 0. -0.02" euler="0. 0. -0.7">
+            <composite type="rope" count="5 1 1" spacing="0.043" offset="0 0 0" prefix="F">
+            <joint kind="main" damping="10"/>
+            <geom type="capsule" size=".01 .02" rgba=".18 .2 .03 1"/>
+            </composite>
+            </body>
+    </body>
+
+        <!-- <composite prefix="main branch1" type="rope" count="15" spacing="0.02" offset="0 0 0">
+        <joint kind="main" damping="100"/>
+
+        <geom size=".02" rgba=".8 .2 .1 1"/>
+        <pin coord="10"/>
+        <pin coord="8"/>
+        </composite> -->
+         <!-- <body name ="side_branch1" pos="0 0 0" quat=".5 .5 0. 1" >
+        <composite prefix="side_branch1" type="grid" count="5 6 1" spacing="0.02" offset="0 0 0">
+        <joint kind="main" damping=".5"/>
+        <geom size=".02" rgba="0 .5 0 1"/>
+        <pin coord="1"/>
+        </composite>
+  
+    </body> -->
+    </body>
+
+</body>
+<!-- 
+<body name="cube_free" pos=".4 0 .16">
+    <geom type="sphere" size=".1" rgba="0.6 0.0 0.0 1" mass = "1000 " />
+    <joint name="free" type="free"/>
+
+</body>  
+         
+<body name="cube2_free" pos=".45 .2 .16">
+    <geom type="sphere" size=".08" rgba="0.6 0.0 0.0 1" mass = "500 " />
+    <joint name="free2" type="free"/>
+    
+</body>   -->
+         
+
+
+</worldbody>
+
+  <equality>
+    <connect body1="CB0" body2="AB4"  anchor="0 0 0"/>
+    <connect body1="CB15" body2="FB2"  anchor="0 0 0"/>
+  </equality>
+</mujoco>
