@@ -23,43 +23,17 @@ class MPC():
     def __init__(self, dt):
         cvxopt.solvers.options['show_progress'] = False
         # MPC Parameters
-        self.n = 7  # Number of joints
-        self.N = 10  # MPC prediction horizon (20 to 30 samples)
-        self.m = 1 # control horizon, (.1 * prediction) 
+        self.n = 7  # Number of joints 
         self.dt = dt
         # self.tmax = tmax
         # MPC setup
         self.q0 = np.zeros(self.n)
 
-        self.A = np.eye(self.n)
-        self.B = self.dt * np.eye(self.n)
-        self.Q = 1e8 * np.eye(self.n)
-        self.Ru = np.eye(self.n)
-        self.P = self.Q
-        self.S, self.M, self.Qbar,self. Rbar, _ = uncMPC(self.N, self.A, self.B, self.Q, self.Ru, self.P)
-        self.H = 2 * np.dot(self.S.T, np.dot(self.Qbar, self.S)) + self.Rbar
-        self.f0 = 2 * np.dot(self.S.T, np.dot(self.Qbar, self.M))
-        # print("forceeeeee", self.f0.shape)
-
-        # robot setup
-        # self.robot = rtb.robot.Robot.URDF(file_path=path2urdf)
-
         # Robot-specific Constraints
         self.u_UB = np.array([10, 10, 10,10, 10, 10, 10]) # Max speed (degree/s)
         self.u_LB = -self.u_UB
-        self.U_UB = np.tile(self.u_UB, self.N)
-        self.U_LB = np.tile(self.u_LB, self.N)
         self.q_UB = np.array([6.28319, 6.28319, 2.61799, 6.28319, 6.28319, 6.28319,6.28319]) # Motion range (rad)
         self.q_LB = -self.q_UB
-        self.Q_UB = np.tile(self.q_UB, self.N)
-        self.Q_LB = np.tile(self.q_LB, self.N)
-        self.G = np.vstack((self.S, -self.S, np.eye(self.S.shape[1]), -np.eye(self.S.shape[1])))
-        self.W = np.hstack((self.Q_UB, -self.Q_LB, self.U_UB, -self.U_LB))
-        self.T = np.vstack((-self.M, self.M, np.zeros_like(self.M), np.zeros_like(self.M)))
-        # self.Wtil = (self.W + np.dot(self.T, self.q0)).reshape(-1,1)
-        # print("w", self.Wtil.shape, self.G.shape)
-        self.U_UB = self.U_UB.reshape(-1,1)
-        self.U_LB = self.U_LB.reshape(-1,1)
         self.joint_configs = np.zeros(self.n)
         self.arrived = False
         self.prev_u = np.zeros(8)
@@ -92,37 +66,6 @@ class MPC():
         time.sleep(1)
         print("start controller")
 
-
-    def quadprog(self, H, f, L=None, k=None, Aeq=None, beq=None, lb=None, ub=None):
-        """
-        Input: Numpy arrays, the format follows MATLAB quadprog function: https://www.mathworks.com/help/optim/ug/quadprog.html
-        Output: Numpy array of the solution
-        """
-        n_var = H.shape[1]
-
-        P = cvxopt.matrix(H, tc='d')
-        q = cvxopt.matrix(f, tc='d')
-
-        if L is not None or k is not None:
-            assert(k is not None and L is not None)
-            if lb is not None:
-                L = np.vstack([L, -np.eye(n_var)])
-                k = np.vstack([k, -lb])
-
-            if ub is not None:
-                L = np.vstack([L, np.eye(n_var)])
-                k = np.vstack([k, ub])
-
-            L = cvxopt.matrix(L, tc='d')
-            k = cvxopt.matrix(k, tc='d')
-
-        if Aeq is not None or beq is not None:
-            assert(Aeq is not None and beq is not None)
-            Aeq = cvxopt.matrix(Aeq, tc='d')
-            beq = cvxopt.matrix(beq, tc='d')
-        sol = cvxopt.solvers.qp(P, q, L, k, Aeq, beq)
-
-        return np.array(sol['x'])
 
 
     def run_opt_controller(self,target_position, target_vel, q,dq, robot):

@@ -19,13 +19,19 @@ import numpy as np
 
 import roboticstoolbox as rtb
 import spatialmath.base as base
+import sys
 
 class RoboEnv(MuJoCoBase):
 
-    def __init__(self, path2urdf="/home/nidhi/MPC_python/mujoco_reactive_controller/urdf/xarm7.urdf"):
-        # xml_path = "/home/nidhi/MPC_python/mujoco_menagerie/ufactory_xarm7/xarm7.xml"
-        xml_path = "/home/nidhi/MPC_python/mujoco_reactive_controller/assets/interface.xml"
-        # xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
+    def __init__(self):
+        is_windows = sys.platform.startswith('win')
+        if is_windows :
+            xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
+            path2urdf="./urdf/xarm7.urdf"
+        else:
+            xml_path = "/home/nidhi/MPC_python/mujoco_reactive_controller/assets/interface.xml"
+            path2urdf="/home/nidhi/MPC_python/mujoco_reactive_controller/urdf/xarm7.urdf"
+        
         super().__init__(xml_path)
         
         self.data = mujoco.MjData(self.model)
