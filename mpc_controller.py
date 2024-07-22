@@ -125,13 +125,15 @@ class MPC():
             # Aeq[6:12,7:14] = robot.get_jacobian()
             # print(vel_k_1)
             beq[0:6]= np.asarray(target_vel) 
-            Torque = robot.get_inverse_dynamics()
+            print("--------------------")
+            Torque = robot.get_joint_torque()
             
             force_ex = np.round(wrench - np.dot(J, Torque), 1)
             # beq[6:]=force_ex
             J_inv = np.linalg.pinv(J)
-    
-            print("wrench", np.round((np.dot(J.T, wrench) - Torque),2))
+            # print("wrench", np.round( np.dot(J.T, wrench),2))
+            print("wrench diff ", np.round((np.dot(J.T, wrench) - Torque),2))
+            print("test jaco", np.dot(J, dq)- robot.data.efc_vel[-1])
 
             Ain = np.zeros((self.n, self.n))
             bin = np.zeros(self.n)
@@ -171,7 +173,6 @@ class MPC():
                 # qd[6] = 0
                 # qd[7] = 0
                 u = dq_d[0:7]*60 #+ np.dot(M_inv,dq_d[7:14])*1200*dt*dt/2
-                print(u)
                 robot.run(u)
                 self.prev_u =u
                 self.mpc_ctl.append(u[:7])
@@ -210,7 +211,6 @@ class MPC():
     
         else:
             u = dq_d[0:7]*dt*60 #+np.dot(M_inv,dq_d[7:14])*1200/2
-            print(dt)
             self.prev_u =u[0:7]
             robot.run(u[0:7])
         # return qd[:n], qd[:n], self.Tg,self.arrived

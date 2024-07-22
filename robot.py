@@ -116,11 +116,11 @@ class RoboEnv(MuJoCoBase):
         force = self.data.sensordata[0:3]
         torque = self.data.sensordata[3:6]
         # print(self.data.sensordata)
-        force = ft_ori_mat @ force
-        torque = ft_ori_mat @ torque
+        # force = ft_ori_mat @ force
+        # torque = ft_ori_mat @ torque
         wrench = np.concatenate([force, torque])
         # print("t", torque)
-        wrench = np.array([wrench[1],wrench[2],wrench[0],wrench[4],wrench[5],wrench[4]])
+        wrench = np.array([wrench[0],wrench[1],wrench[2],wrench[3],wrench[4],wrench[5]])
         return wrench
 
     def get_ee_position(self):
@@ -166,15 +166,19 @@ class RoboEnv(MuJoCoBase):
             ddq.append(Q[joint])
         return ddq
 
-    def get_inverse_dynamics(self):
-        joint_torque= self.data.qfrc_actuator[self.joint_ids]
+    def get_joint_torque(self):
+        joint_t1= self.data.qfrc_actuator[self.joint_ids]
+        joint_t2 = self.data.qfrc_constraint[self.joint_ids]
+        joint_torque = joint_t1 
+        
         ddq = self.get_joint_acc()
-        q = self.get_joint_positions()
-        dq = self.get_joint_vel()
-        M_q = self.get_M_()
+        M = self.get_M_()
         c_q = self.data.qfrc_bias[self.joint_ids]
-        J_q = self.get_jacobian()
-        T = joint_torque* q
+        # T = self.data.qfrc_inverse.copy()[self.joint_ids]
+        # print("m ddq",np.dot(M,ddq)-c_q)
+        # print("cc", c_q)
+        # print("t",joint_torque+c_q)
+        T = joint_torque +c_q
         return T
 
 
@@ -209,7 +213,7 @@ class RoboEnv(MuJoCoBase):
 
     def run(self, control_input):
         # this works like a position controller 
-        self.data.ctrl[0:7] = control_input[0:7]
+        self.data.ctrl[0:7] = [0,0,0,np.pi,0,np.pi/2,0]
         self.data.ctrl[-1] = 5
         mujoco.mj_step(self.model, self.data)
         mujoco.mj_rnePostConstraint(self.model, self.data)
