@@ -96,11 +96,15 @@
                   <joint name="joint6" range="-1.69297 3.14159" class="size3"/>
                   <geom mesh="link6"/>
                   <body name="link7" pos="0.076 0.097 0" quat="1 -1 0 0">
-                   <site name="eef_site" pos="0 0.26 0" rgba="1 0 0 1" quat="-1 1 0 0"/>
+                   <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1" quat="-1 1 0 0"/>
                     <inertial pos="0 -0.00677 -0.01098" quat="0.487612 0.512088 -0.512088 0.487612" mass="0.17"
                       diaginertia="0.000132176 9.3e-05 5.85236e-05"/>
                     <joint name="joint7" class="size3"/>
                     <geom material="gray" mesh="end_tool"/>
+                    <body name="end_effector_dummy" pos="0.0 0.0 0" >
+                    <geom type="cylinder"  pos="0. 0 .004"  size=".04 .005 .005" rgba="1 0 0 1"/>
+                    </body>
+
                     <!-- <body name="xarm_gripper_base_link" quat="0 0 0 1">
                       <inertial pos="-0.00065489 -0.0018497 0.048028" quat="0.997403 -0.0717512 -0.0061836 0.000477479"
                         mass="0.54156" diaginertia="0.000471093 0.000332307 0.000254799"/>

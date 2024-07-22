@@ -23,7 +23,7 @@ class MPC():
     def __init__(self, dt):
         cvxopt.solvers.options['show_progress'] = False
         # MPC Parameters
-        self.n = 14  # Number of joints
+        self.n = 7  # Number of joints
         self.N = 10  # MPC prediction horizon (20 to 30 samples)
         self.m = 1 # control horizon, (.1 * prediction) 
         self.dt = dt
@@ -45,11 +45,11 @@ class MPC():
         # self.robot = rtb.robot.Robot.URDF(file_path=path2urdf)
 
         # Robot-specific Constraints
-        self.u_UB = np.array([10, 10, 10,10, 10, 10, 10,10, 10, 10,10, 10, 10, 10])*10 # Max speed (degree/s)
+        self.u_UB = np.array([10, 10, 10,10, 10, 10, 10]) # Max speed (degree/s)
         self.u_LB = -self.u_UB
         self.U_UB = np.tile(self.u_UB, self.N)
         self.U_LB = np.tile(self.u_LB, self.N)
-        self.q_UB = np.array([6.28319, 6.28319, 2.61799, 6.28319, 6.28319, 6.28319,6.28319,1000,1000,1000,1000,1000,1000,1000]) # Motion range (rad)
+        self.q_UB = np.array([6.28319, 6.28319, 2.61799, 6.28319, 6.28319, 6.28319,6.28319]) # Motion range (rad)
         self.q_LB = -self.q_UB
         self.Q_UB = np.tile(self.q_UB, self.N)
         self.Q_LB = np.tile(self.q_LB, self.N)
@@ -183,34 +183,22 @@ class MPC():
             # dq_k_1 = np.asarray(dq) + np.asarray(ddq)*(1/60) 
             # pnv_j = np.linalg.pinv(J)
             # vel_k_1 = np.dot(J, dq_k_1)
-            Aeq = np.zeros((12,n))
-            beq = np.zeros(12)    
+            Aeq = np.zeros((6,self.n))
+            beq = np.zeros(6)  
             # print(Aeq)        
             Aeq[0:6,0:7] = robot.get_jacobian()
-            Aeq[6:12,7:14] = robot.get_jacobian()
+            # Aeq[6:12,7:14] = robot.get_jacobian()
             # print(vel_k_1)
             beq[0:6]= np.asarray(target_vel) 
             Torque = robot.get_inverse_dynamics()
             
             force_ex = np.round(wrench - np.dot(J, Torque), 1)
-            beq[6:12]=force_ex
-            print("force", force_ex)
+            # beq[6:]=force_ex
             J_inv = np.linalg.pinv(J)
             w_tor = np.dot(J_inv, wrench)
-            print("cdsfdfd")
-            print(w_tor)
-            print("ttttt")
-    
-            # print(beq[0], target_vel[0])
-            # print("pos x, beq", robot.data.site_xpos[0][0], np.dot(J,dq))
-
-
-            # print("w",  wrench)
-            # print("T", np.dot(J, Torque))
-            # time.sleep(5)
-            # The inequality constraints for joint limit avoidance
-            Ain = np.zeros((n, n))
-            bin = np.zeros(n)
+            # print("wrench", np.round((np.dot(J.T, wrench) - Torque),2))
+            Ain = np.zeros((self.n, self.n))
+            bin = np.zeros(self.n)
 
             # The minimum angle (in radians) in which the joint is allowed to approach
             # to its limit
@@ -221,7 +209,7 @@ class MPC():
             pi = 0.9
 
             # Form the joint limit velocity damper
-            Ain[:7, :7], bin[:7] = robot.robot.joint_velocity_damper(ps, pi, 7)
+            Ain, bin= robot.robot.joint_velocity_damper(ps, pi, self.n)
                 # Linear component of objective function: the manipulability Jacobian
             # c = np.r_[-np.delete(np.array(robot.robot.jacobe(robot.robot.q)), -1, axis = 1).reshape((n,)), np.zeros(6)]
 
@@ -232,7 +220,7 @@ class MPC():
             
             # c = np.matmul(np.transpose(J), wrench)*1000
     
-            c = np.zeros(n)
+            c = np.zeros(self.n)
             dq_d = qp.solve_qp(self.Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver = 'cvxopt')  
   
             q= robot.get_joint_positions()  
@@ -240,15 +228,16 @@ class MPC():
             
             if dq_d is None:
                 u = self.prev_u[0:7]
-                robot.run(u[:7])
+                robot.run(np.zeros(7))
                 self.mpc_ctl.append(self.prev_u)
             else:
                 # qd[5] = 0
                 # qd[6] = 0
                 # qd[7] = 0
-                u = dq_d[0:7]*dt*60 #+ np.dot(M_inv,dq_d[7:14])*1200*dt*dt/2
-                robot.run(u[:7])
-                self.prev_u =u[:n]
+                u = dq_d[0:7]*60 #+ np.dot(M_inv,dq_d[7:14])*1200*dt*dt/2
+                print(u)
+                robot.run(u)
+                self.prev_u =u
                 self.mpc_ctl.append(u[:7])
 
 
@@ -284,7 +273,7 @@ class MPC():
             robot.run(self.prev_u[0:7])
     
         else:
-            u = dq_d[0:7]*dt*60+np.dot(M_inv,dq_d[7:14])*1200*dt*dt/2
+            u = dq_d[0:7]*dt*60 #+np.dot(M_inv,dq_d[7:14])*1200/2
             print(dt)
             self.prev_u =u[0:7]
             robot.run(u[0:7])

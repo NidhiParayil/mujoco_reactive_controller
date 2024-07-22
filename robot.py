@@ -22,10 +22,10 @@ import spatialmath.base as base
 
 class RoboEnv(MuJoCoBase):
 
-    def __init__(self, path2urdf="./urdf/xarm7.urdf"):
+    def __init__(self, path2urdf="/home/nidhi/MPC_python/mujoco_reactive_controller/urdf/xarm7.urdf"):
         # xml_path = "/home/nidhi/MPC_python/mujoco_menagerie/ufactory_xarm7/xarm7.xml"
-        # xml_path = "/home/nidhi/MPC_python/mujoco_rbt/assets/interface.xml"
-        xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
+        xml_path = "/home/nidhi/MPC_python/mujoco_reactive_controller/assets/interface.xml"
+        # xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
         super().__init__(xml_path)
         
         self.data = mujoco.MjData(self.model)
@@ -83,6 +83,7 @@ class RoboEnv(MuJoCoBase):
         q = []
         for j in self.joint_ids:
             q.append(self.data.qpos[j])
+
         return q
 
     def get_joint_vel(self):
@@ -100,14 +101,7 @@ class RoboEnv(MuJoCoBase):
         return ddq        
 
     def get_ee_wrench(self):
-        # print(self.model.name_sensoradr)
-        # self.force_id = self.model.name_sensoradr[0]
-        # self.force_adr = self.model.name_sensoradr[0]
-        # self.torque_id = self.model.name_sensoradr[1]
-        # # self.torque_adr = self.model.name_sensoradr[1]
-        # self.sensor_site = "eef_site "
-        # # print(self.data.site_xmat.shape)
-        # self.ft_site_id = self.model.name_siteadr[1]
+
         self.force_ndim = 3
         self.torque_ndim = 3
         # Get the orientation matrix of the force-torque (FT) sensor
@@ -132,7 +126,8 @@ class RoboEnv(MuJoCoBase):
     def get_jacobian(self):
         q_mujoco = self.get_joint_positions()
         J = np.array(self.robot.jacobe(q_mujoco))
-        return J
+
+        return J [:,0:7]
     
 
 
@@ -166,10 +161,6 @@ class RoboEnv(MuJoCoBase):
         c_q = self.data.qfrc_bias[self.joint_ids]
         J_q = self.get_jacobian()
         T = joint_torque* q
-        # Q=np.matmul(np.linalg.inv(M_q), (joint_torque  - np.dot(J_q.T, wrench)))    
-        # ddq = []
-        # for joint in self.joint_ids:
-        #     ddq.append(Q[joint])
         return T
 
 
@@ -200,73 +191,6 @@ class RoboEnv(MuJoCoBase):
 
             # process pending GUI events, call GLFW callbacks
         glfw.poll_events()
-
-
-
-
-    # def joint_pos_controller(self, target_joint_position):
-    #     M = self.get_M_()
-        
-    #     # print(target_joint_position)
-    #     target_positions = np.clip(target_joint_position[0:7], self.min_position, self.max_position)
-    #     current_positions = self.data.qpos[self.joint_ids]
-    #     current_velocities = self.data.qvel[self.joint_ids]
-
-    #     # Calculate the error term for PD control
-    #     position_error = target_positions - current_positions
-    #     velocity_error = -current_velocities
-    #     self.kp=[x * 0 for x in self.gain_parm]
-    #     self.kd=[x * 0 for x in self.gain_parm]
-    #     # Calculate the control effort (u) using PD control
-    #     # print()
-    #     u = self.kp * position_error + self.kd * velocity_error + target_joint_position
-
-    #     # Apply the joint space inertia matrix to obtain the desired joint effort (torques)
-    #     # target_effort = np.dot(M, u)
-    #     self.run(u)
-
-
-    # def joint_velocity_controller(self, target_joint_velocity):
-    #     M = self.get_M_()
-    #     # M = M_full[self.joint_ids, :][:, self.joint_ids]
-    #     target_velocities = np.clip(target_joint_velocity, self.min_velocity, self.max_velocity)
-    #     current_velocities = self.data.qvel[self.joint_ids]
-    #     error = target_velocities - current_velocities
-
-    #     # Integral term
-    #     if self.antiwindup:
-    #         self.integral += error
-    #         # Anti-windup to limit the integral term
-    #         self.integral = np.clip(self.integral, -self.max_integral, self.max_integral)
-    #     else:
-    #         self.integral += error
-
-    #     self.kp=[x *.01 for x in self.gain_parm]
-    #     self.kd=[x *.001 for x in self.gain_parm]
-    #     self.ki=[x *(-0.0) for x in self.gain_parm]
-    #     # Calculate the control effort (u) using PD control
-    #     # Derivative term
-    #     derivative = error - self.prev_error
-
-    #     # Calculate the desired joint effort (torques) using PID control
-    #     u = self.kp * error + self.kd * derivative + self.ki * self.integral 
-    #     # Save the current error for the next iteration
-    #     self.prev_error = error
-    #     target_effort = np.dot(M, u)
-    #     self.run(target_effort, u_motor)
-
-    # # def joint_effort_controller(self, target):
-
-    #     target_effort = np.clip(target, self.min_effort, self.max_effort)
-        
-    #     # Get the gravity compensation for each joint
-    #     gravity_compensation = self.data.qfrc_bias[self.joint_ids]
-
-    #     # Add gravity compensation to the target effort
-    #     target_effort += gravity_compensation
-
-    #     # Call the base controller's `run_controller` method with the clipped target efforts
-    #     self.run(target_effort, 5)
 
 
     def run(self, control_input):
