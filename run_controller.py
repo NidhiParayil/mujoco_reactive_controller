@@ -69,7 +69,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     target_pose = np.random.uniform(-np.pi/2, np.pi/2, size=7)
     # target_vel = np.array([5,10.,3,-0,-0.,0,0])
-    target_vel  =[0.3,0.0,0.1,0,0,0.]
+    target_vel  =[0.3,0.0,0.,0,0,0.]
     ee_position = robot.get_ee_position()
     print("position",ee_position)
     target_position = [ee_position[0]+.3,ee_position[1],ee_position[2]]
@@ -80,9 +80,9 @@ if __name__ == '__main__':
     # curr_time = time.time() - start_time
     q, dq = robot.get_joint_positions(), robot.get_joint_vel()
     ee_pos = robot.get_ee_position()
-    # mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
-    for i in range(0, 100):
-        mpc.resolve_rate_controller(robot, target_vel)
+    mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
+    # for i in range(0, 100):
+    #     mpc.resolve_rate_controller(robot, target_vel)
 
 
     # wrench = np.asarray(mpc.wrench)

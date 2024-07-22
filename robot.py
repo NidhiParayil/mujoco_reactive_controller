@@ -22,9 +22,10 @@ import spatialmath.base as base
 
 class RoboEnv(MuJoCoBase):
 
-    def __init__(self, path2urdf="/home/nidhi/MPC_python/mujoco_rbt/urdf/xarm7.urdf"):
+    def __init__(self, path2urdf="./urdf/xarm7.urdf"):
         # xml_path = "/home/nidhi/MPC_python/mujoco_menagerie/ufactory_xarm7/xarm7.xml"
-        xml_path = "/home/nidhi/MPC_python/mujoco_rbt/assets/interface.xml"
+        # xml_path = "/home/nidhi/MPC_python/mujoco_rbt/assets/interface.xml"
+        xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
         super().__init__(xml_path)
         
         self.data = mujoco.MjData(self.model)
@@ -90,6 +91,13 @@ class RoboEnv(MuJoCoBase):
             dq.append(self.data.qvel[j])
 
         return dq
+    
+    def get_joint_acc(self):
+        ddq = []
+        for j in self.joint_ids:
+            ddq.append(self.data.qacc[j])
+
+        return ddq        
 
     def get_ee_wrench(self):
         # print(self.model.name_sensoradr)
@@ -127,6 +135,7 @@ class RoboEnv(MuJoCoBase):
         return J
     
 
+
     def get_rbt_joint_pos(self):
         pass
 
@@ -148,7 +157,20 @@ class RoboEnv(MuJoCoBase):
             ddq.append(Q[joint])
         return ddq
 
-
+    def get_inverse_dynamics(self):
+        joint_torque= self.data.qfrc_actuator[self.joint_ids]
+        ddq = self.get_joint_acc()
+        q = self.get_joint_positions()
+        dq = self.get_joint_vel()
+        M_q = self.get_M_()
+        c_q = self.data.qfrc_bias[self.joint_ids]
+        J_q = self.get_jacobian()
+        T = joint_torque* q
+        # Q=np.matmul(np.linalg.inv(M_q), (joint_torque  - np.dot(J_q.T, wrench)))    
+        # ddq = []
+        # for joint in self.joint_ids:
+        #     ddq.append(Q[joint])
+        return T
 
 
     def get_rbt_end_eff_pose(self):
