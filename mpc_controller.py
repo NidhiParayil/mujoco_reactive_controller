@@ -127,16 +127,16 @@ class MPC():
 
     def run_opt_controller(self,target_position, target_vel, q,dq, robot):
         val , pos, oreint =   robot.get_rbt_end_eff_pose()
-        Tep = val
-        Tep.t = target_position
-        n = self.n
-        pg = target_position
-        Rg = oreint
-        self.Tg = SE3.Trans(pg) * Rg
-        self.q = q
-        self.q0 = q
+        # Tep = val
+        # Tep.t = target_position
+        # n = self.n
+        # pg = target_position
+        # Rg = oreint
+        # self.Tg = SE3.Trans(pg) * Rg
+        # self.q = q
+        # self.q0 = q
         i = 0
-        self.pre_error =10
+        # self.pre_error =10
         self.arrived = False
         count_run_mpc = 0
         wrench = [0.01,0.01,0.01,0.01,0.01,0.01,.01]
@@ -167,8 +167,8 @@ class MPC():
 
             self.Y = 0.1
 
-            self.Q = np.eye(n)
-            self.Q[:n, :n] *= self.Y
+            self.Q = np.eye(self.n)
+            self.Q[:self.n, :self.n] *= self.Y
 
             if np.abs(np.mean(wrench))>1:
                 # print("huge wrench")
@@ -225,7 +225,7 @@ class MPC():
                 # Linear component of objective function: the manipulability Jacobian
             # c = np.r_[-np.delete(np.array(robot.robot.jacobe(robot.robot.q)), -1, axis = 1).reshape((n,)), np.zeros(6)]
 
-            # The lower and upper bounds on the joint velocity and slack variable
+            # The lower and upper bounds on the joint velocity 
             lb = self.q_LB
             ub = self.q_UB
             
