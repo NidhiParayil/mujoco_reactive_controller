@@ -7,7 +7,7 @@ else:
     MUJOCO_IMPORT_ERROR = None
 
 import time
-
+from dm_control.mujoco.wrapper import mjbindings
 import mujoco
 import mujoco.viewer
 
@@ -50,6 +50,7 @@ class RoboEnv(MuJoCoBase):
         self.reset_joints()
         self.integral = np.zeros(7)
         self.prev_error = np.zeros(7)
+        self.eef_name = "end_effector_dummy"
         # robot setup
         self.robot = rtb.robot.Robot.URDF(file_path=path2urdf)
         self.link1 = rtb.robot.DHLink(d=0.267, alpha=0.0, theta=0.0, a=0.0, m =2.382)
@@ -130,10 +131,18 @@ class RoboEnv(MuJoCoBase):
         return self.data.xpos
 
     def get_jacobian(self):
-        q_mujoco = self.get_joint_positions()
-        J = np.array(self.robot.jacobe(q_mujoco))
+        # q_mujoco = self.get_joint_positions()
+        # J = np.array(self.robot.jacobe(q_mujoco))
+        site_id = 0
+        mjlib = mjbindings.mjlib
 
-        return J [:,0:7]
+        jacp = np.zeros((3, self.model.nv))
+        jacr = np.zeros((3, self.model.nv))
+        mjlib.mj_jacSite(self.model, self.data, jacp, jacr, site_id)
+        J = []
+        jac = np.vstack([jacp, jacr])
+        J = jac[:, self.joint_ids]
+        return J
     
 
 
@@ -151,8 +160,7 @@ class RoboEnv(MuJoCoBase):
         M_q = self.get_M_()
         c_q = self.data.qfrc_bias[self.joint_ids]
         J_q = self.get_jacobian()
-
-        Q=np.matmul(np.linalg.inv(M_q), (joint_torque  - np.dot(J_q.T, wrench)))    
+        Q=np.matmul(np.linalg.inv(M_q), (joint_torque ))    
         ddq = []
         for joint in self.joint_ids:
             ddq.append(Q[joint])

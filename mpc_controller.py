@@ -14,9 +14,7 @@ import qpsolvers as qp
 from controller_performance import ControlPerformance
 
 import mpc_qp
-# Variables : velocity
-# Objective : velocity deviation
-# Constraints : Ax +Bu 
+
 
 class MPC():
 
@@ -70,14 +68,6 @@ class MPC():
 
     def run_opt_controller(self,target_position, target_vel, q,dq, robot):
         val , pos, oreint =   robot.get_rbt_end_eff_pose()
-        # Tep = val
-        # Tep.t = target_position
-        # n = self.n
-        # pg = target_position
-        # Rg = oreint
-        # self.Tg = SE3.Trans(pg) * Rg
-        # self.q = q
-        # self.q0 = q
         i = 0
         # self.pre_error =10
         self.arrived = False
@@ -104,6 +94,8 @@ class MPC():
             wrench_avg = np.array([sum(col) / len(col) for col in zip(*self.wrench_sample)])
 
             J  = robot.get_jacobian()
+
+            
             if robot.curr_time>50:
                 self.arrived = True
                 print("should not enter")
@@ -138,8 +130,9 @@ class MPC():
             force_ex = np.round(wrench - np.dot(J, Torque), 1)
             # beq[6:]=force_ex
             J_inv = np.linalg.pinv(J)
-            w_tor = np.dot(J_inv, wrench)
-            # print("wrench", np.round((np.dot(J.T, wrench) - Torque),2))
+    
+            print("wrench", np.round((np.dot(J.T, wrench) - Torque),2))
+
             Ain = np.zeros((self.n, self.n))
             bin = np.zeros(self.n)
 
