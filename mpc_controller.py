@@ -95,7 +95,7 @@ class MPC():
 
             J  = robot.get_jacobian()
 
-            
+
             if robot.curr_time>50:
                 self.arrived = True
                 print("should not enter")
@@ -133,7 +133,10 @@ class MPC():
             J_inv = np.linalg.pinv(J)
             # print("wrench", np.round( np.dot(J.T, wrench),2))
             print("wrench diff ", np.round((np.dot(J.T, wrench) - Torque),2))
-            print("test jaco", np.dot(J, dq)- robot.data.efc_vel[-1])
+            print("wrench", wrench)
+            # print("jac", J)
+            # print("w x jac", np.matmul(J.T, wrench))
+            # print("joint torque", Torque)
 
             Ain = np.zeros((self.n, self.n))
             bin = np.zeros(self.n)

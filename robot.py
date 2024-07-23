@@ -112,7 +112,7 @@ class RoboEnv(MuJoCoBase):
         self.force_ndim = 3
         self.torque_ndim = 3
         # Get the orientation matrix of the force-torque (FT) sensor
-        ft_ori_mat = self.data.site_xmat[1,:].reshape(3, 3)
+        # ft_ori_mat = self.data.site_xmat[1,:].reshape(3, 3)
         force = self.data.sensordata[0:3]
         torque = self.data.sensordata[3:6]
         # print(self.data.sensordata)
@@ -178,7 +178,9 @@ class RoboEnv(MuJoCoBase):
         # print("m ddq",np.dot(M,ddq)-c_q)
         # print("cc", c_q)
         # print("t",joint_torque+c_q)
-        T = joint_torque +c_q
+        T = np.dot(M,ddq) +c_q
+        print("actua",joint_torque )
+        print("torque", T)
         return T
 
 
@@ -213,7 +215,7 @@ class RoboEnv(MuJoCoBase):
 
     def run(self, control_input):
         # this works like a position controller 
-        self.data.ctrl[0:7] = [0,0,0,np.pi,0,np.pi/2,0]
+        self.data.ctrl[0:7] = [0,0,0,0,0,0,0]
         self.data.ctrl[-1] = 5
         mujoco.mj_step(self.model, self.data)
         mujoco.mj_rnePostConstraint(self.model, self.data)

@@ -96,7 +96,8 @@
                   <joint name="joint6" range="-1.69297 3.14159" class="size3"/>
                   <geom mesh="link6"/>
                   <body name="link7" pos="0.076 0.097 0" quat="1 -1 0 0">
-                   <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1" quat="-1 1 0 0"/>
+                   <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1"/> 
+                   <!-- <geom type="box"  pos="0. 0 .0"  size=".04 .05 .05" rgba="1 1 0 1"/> -->
                     <inertial pos="0 -0.00677 -0.01098" quat="0.487612 0.512088 -0.512088 0.487612" mass="0.17"
                       diaginertia="0.000132176 9.3e-05 5.85236e-05"/>
                     <joint name="joint7" class="size3"/>
