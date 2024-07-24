@@ -23,6 +23,7 @@ class MPC():
         # MPC Parameters
         self.n = 7  # Number of joints 
         self.dt = dt
+        self.stop_time = dt
         # self.tmax = tmax
         # MPC setup
         self.q0 = np.zeros(self.n)
@@ -63,6 +64,11 @@ class MPC():
         # self.
         time.sleep(1)
         print("start controller")
+        self.act = []
+        self.T = []
+        self.wrench_jac= []
+        self.v = []
+        self.sensor_v =[]
 
 
 
@@ -96,7 +102,7 @@ class MPC():
             J  = robot.get_jacobian()
 
 
-            if robot.curr_time>50:
+            if robot.curr_time>self.stop_time:
                 self.arrived = True
                 print("should not enter")
 
@@ -126,7 +132,13 @@ class MPC():
             # print(vel_k_1)
             beq[0:6]= np.asarray(target_vel) 
             print("--------------------")
-            Torque = robot.get_joint_torque()
+            Torque, j_T = robot.get_joint_torque()
+            self.T.append(Torque)
+            self.act.append(j_T)
+            self.wrench_jac.append(np.matmul(J.T, wrench))
+            v = robot.get_ee_vel()
+            self.sensor_v.append(v)
+            self.v.append(np.dot(J,dq)[0:3])
             
             force_ex = np.round(wrench - np.dot(J, Torque), 1)
             # beq[6:]=force_ex

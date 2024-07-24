@@ -112,16 +112,24 @@ class RoboEnv(MuJoCoBase):
         self.force_ndim = 3
         self.torque_ndim = 3
         # Get the orientation matrix of the force-torque (FT) sensor
-        # ft_ori_mat = self.data.site_xmat[1,:].reshape(3, 3)
+        ft_ori_mat = self.data.site_xmat[0].reshape(3, 3)
         force = self.data.sensordata[0:3]
         torque = self.data.sensordata[3:6]
         # print(self.data.sensordata)
-        # force = ft_ori_mat @ force
-        # torque = ft_ori_mat @ torque
+        # sensor_body_id = self.model.sensor_bbjid[0]
+        force = np.dot(ft_ori_mat, force)
+        torque = np.dot(ft_ori_mat, torque)
         wrench = np.concatenate([force, torque])
         # print("t", torque)
         wrench = np.array([wrench[0],wrench[1],wrench[2],wrench[3],wrench[4],wrench[5]])
-        return wrench
+        return -wrench
+
+    def get_ee_vel(self):
+        self.vel_ndim = 3
+        ft_ori_mat = self.data.site_xmat[0].reshape(3, 3)
+        v = self.data.sensordata[6:9]
+        v = np.dot(ft_ori_mat, v)
+        return v
 
     def get_ee_position(self):
         body_name = "link7"
@@ -154,7 +162,7 @@ class RoboEnv(MuJoCoBase):
 
 
     def get_forward_dynamics(self, wrench):
-        joint_torque= self.data.qfrc_actuator[self.joint_ids]
+        joint_torque= self.data.actuator_force[self.joint_ids]
         q = self.get_joint_positions()
         dq = self.get_joint_vel()
         M_q = self.get_M_()
@@ -170,7 +178,7 @@ class RoboEnv(MuJoCoBase):
         joint_t1= self.data.qfrc_actuator[self.joint_ids]
         joint_t2 = self.data.qfrc_constraint[self.joint_ids]
         joint_torque = joint_t1 
-        
+        dq = self.get_joint_vel()
         ddq = self.get_joint_acc()
         M = self.get_M_()
         c_q = self.data.qfrc_bias[self.joint_ids]
@@ -178,10 +186,10 @@ class RoboEnv(MuJoCoBase):
         # print("m ddq",np.dot(M,ddq)-c_q)
         # print("cc", c_q)
         # print("t",joint_torque+c_q)
-        T = np.dot(M,ddq) +c_q
-        print("actua",joint_torque )
-        print("torque", T)
-        return T
+        T = np.dot(M,ddq) + np.dot(c_q,dq) +self.data.qfrc_gravcomp[self.joint_ids]
+        # print("actua",joint_torque )
+        # print("torque", T)
+        return T, joint_torque
 
 
     def get_rbt_end_eff_pose(self):
@@ -215,8 +223,8 @@ class RoboEnv(MuJoCoBase):
 
     def run(self, control_input):
         # this works like a position controller 
-        self.data.ctrl[0:7] = [0,0,0,0,0,0,0]
-        self.data.ctrl[-1] = 5
+        self.data.ctrl[0:7] = control_input
+        # self.data.ctrl[-1] = 5
         mujoco.mj_step(self.model, self.data)
         mujoco.mj_rnePostConstraint(self.model, self.data)
         self.update_sim()

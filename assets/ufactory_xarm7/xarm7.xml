@@ -96,14 +96,17 @@
                   <joint name="joint6" range="-1.69297 3.14159" class="size3"/>
                   <geom mesh="link6"/>
                   <body name="link7" pos="0.076 0.097 0" quat="1 -1 0 0">
-                   <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1"/> 
+                   
                    <!-- <geom type="box"  pos="0. 0 .0"  size=".04 .05 .05" rgba="1 1 0 1"/> -->
                     <inertial pos="0 -0.00677 -0.01098" quat="0.487612 0.512088 -0.512088 0.487612" mass="0.17"
                       diaginertia="0.000132176 9.3e-05 5.85236e-05"/>
                     <joint name="joint7" class="size3"/>
                     <geom material="gray" mesh="end_tool"/>
                     <body name="end_effector_dummy" pos="0.0 0.0 0" >
+                    <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1"/> 
                     <geom type="cylinder"  pos="0. 0 .004"  size=".04 .005 .005" rgba="1 0 0 1"/>
+                    <inertial pos="0 -0. -0."  mass="0.00001"
+                      diaginertia="0 0 0"/>
                     </body>
 
                     <!-- <body name="xarm_gripper_base_link" quat="0 0 0 1">
@@ -158,7 +161,7 @@
       </body>
 
 
-      <body name="test_motor_base" pos="-.1 .6 .05" >
+      <!-- <body name="test_motor_base" pos="-.1 .6 .05" >
         <inertial pos="0 0 0" mass=".5" diaginertia="0.001 0.001 0.001"/>
         <geom type="cylinder"  pos="0. 0 0" size=".05 .01" rgba="0 0 1 .7"/>
         <body name="motor_shaft_reference" pos="0 0 0.1">
@@ -171,7 +174,7 @@
           <joint name="motor" class="motor" range="-100 100"/>
           <geom type="cylinder" euler="1.5 0 0" pos="0 0.03 -.08" size=".005 .03" rgba="1 0 0 1"/>
         </body>
-      </body>
+      </body> -->
     </body>
 
 
@@ -213,20 +216,20 @@
     <general name="act7" joint="joint7" class="size3"/>
     <!-- <general name="gripper" tendon="split" forcerange="-50 50" ctrlrange="0 255" biastype="affine" gainprm="0.333" -->
       <!-- biasprm="0 -100 -10"/> -->
-    <velocity name="act_motor" joint="motor" class="motor" kv = "10" ctrlrange="-10 10"/>
+    <!-- <velocity name="act_motor" joint="motor" class="motor" kv = "10" ctrlrange="-10 10"/> -->
   </actuator>
 
 <sensor>
 <force name="robot0:eef_force" site="eef_site" cutoff="1000"/>
 <torque name="robot0:eef_torque" site="eef_site" cutoff="1000"/>
-<accelerometer name= "robot0:eff_acceleration" site="eef_site"/>
+<velocimeter name= "robot0:eff_vel" site="eef_site"/>
 </sensor>
 
   <!-- <keyframe>
     <key name="home" qpos="0 -.247 0 .909 0 1.15644 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 -.247 0 .909 0 1.15644 0 0"/>
   </keyframe> -->
   <keyframe>
-    <key name="home"  ctrl="0.5 -1 0 0 0.0 .3 0 0"/>
+    <key name="home"  ctrl="0.5 -1 0 0 0.0 .3 0 "/>
   </keyframe>
 
 

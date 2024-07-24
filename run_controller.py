@@ -11,17 +11,33 @@ import time
 
 
 
-def generate_save_plt(dx, dy, x, y, title, axis_names, legend, time1, time2):
-    fig, ax = plt.subplots()
+def generate_save_plt(x, y1, y2, y3, title, axis_names, legend, time1, time2):
+    fig, axs = plt.subplots(1, 3,figsize=(15, 5))
     plt.grid(True)
     colors = ["green", "blue", "red", "yellow", "orange", "pink"]
-    plt.plot(dx, dy, colors[1], label=legend[1])
-    plt.plot(x, y, colors[0], label=legend[0])
-    plt.title(title)
-    plt.legend()
-    ax.set_xlim(time1, time2)
-    plt.xlabel(axis_names[0])
-    plt.ylabel(axis_names[1])
+
+    for i in range(y1.shape[1]):
+        axs[0].plot(x, y1[:, i], color=colors[i % len(colors)])
+    for i in range(y2.shape[1]):
+        axs[1].plot(x, y2[:, i], color=colors[i % len(colors)])
+        
+    for i in range(y3.shape[1]):
+        axs[2].plot(x, y3[:, i], color=colors[i % len(colors)])
+    # axs[0].set_xlim(time1, time2)
+    # axs[1].set_xlim(time1, time2)
+
+    axs[0].set_xlabel(axis_names[0])
+    axs[0].set_ylabel("act force / torque")
+    axs[1].set_xlabel(axis_names[0])
+    axs[1].set_ylabel("m X ddq + c+ g")
+    axs[2].set_xlabel(axis_names[0])
+    axs[2].set_ylabel("J.T x wrench")
+
+    axs[0].legend(legend)
+    # axs[1].legend(legend)
+
+    fig.suptitle(title)
+
     plt.savefig('./plot_results/' + title + '.png')
 
 def generate_save_joint_plt(x, y, title, axis_names, legend, time1, time2):
@@ -59,7 +75,7 @@ def mean_squared_error(x, y):
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    Tmax, dT = 30, 0.2
+    Tmax, dT = 10, 5
     mpc = MPC(dt=dT)
     curr_robot_position = robot.data.site_xpos[0]
     x, y, z, rx, ry, rz = get_path(curr_robot_position, Tmax, dT)
@@ -86,7 +102,22 @@ if __name__ == '__main__':
 
 
     # wrench = np.asarray(mpc.wrench)
-    # time = np.asarray(mpc.opt_ctrl.time)
+    time = np.asarray(mpc.opt_ctrl.time)
+    act = np.asarray(mpc.act)
+    T = np.asarray(mpc.T)
+    W_joint = np.asarray(mpc.wrench_jac)
+
+    # sensor_v = np.asarray(mpc.sensor_v)
+    # v = np.asarray(mpc.v)
+
+
+
+
+    # generate_save_plt(x = time, y1 =v, y2 = sensor_v ,title =  "compare vel",axis_names= ["time", "vel"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
+  
+
+
+    generate_save_plt(x = time, y1 = act, y2 = T, y3 = W_joint,title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
     # generate_save_joint_plt(x = time, y = wrench, title = "wrench", axis_names= ["time", "force"], legend =["x","y","z","rx","ry","rz"], time1=time[0], time2=time[-1])
 
 
