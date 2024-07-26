@@ -1,78 +1,69 @@
-
-try:
-    import mujoco
-except ImportError as e:
-    MUJOCO_IMPORT_ERROR = e
-else:
-    MUJOCO_IMPORT_ERROR = None
-
+import sys
 import time
+import numpy as np
 from dm_control.mujoco.wrapper import mjbindings
 import mujoco
 import mujoco.viewer
-
 from mujoco.glfw import glfw
-from mpc_controller import MPC
-
-from mujoco_env import MuJoCoBase
-import numpy as np
-
 import roboticstoolbox as rtb
 import spatialmath.base as base
-import sys
+from mpc_controller import MPC
+from mujoco_env import MuJoCoBase
 
 class RoboEnv(MuJoCoBase):
-
     def __init__(self):
         is_windows = sys.platform.startswith('win')
-        if is_windows :
+        xml_path, urdf_path = self.get_paths(is_windows)
+        super().__init__(xml_path)
+        self.data = mujoco.MjData(self.model)
+        self.start_time = time.time()
+        self.joint_names = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
+        self.joint_ids = self.get_joint_ids()
+        self.set_robot_params()
+        self.robot_rtb = self.load_rtb_robot(urdf_path)
+        self.reset_joints()
+        print("---------all good loading robots------------")
+
+    def get_paths(self, is_windows):
+        if is_windows:
             xml_path = 'C:/Users/NidhiParayil/nidhi/mujoco_reactive_controller/assets/interface.xml'
-            path2urdf="./urdf/xarm7.urdf"
+            urdf_path = "./urdf/xarm7.urdf"
         else:
             xml_path = "/home/nidhi/MPC_python/mujoco_reactive_controller/assets/interface.xml"
-            path2urdf="/home/nidhi/MPC_python/mujoco_reactive_controller/urdf/xarm7.urdf"
-        
-        super().__init__(xml_path)
-        
-        self.data = mujoco.MjData(self.model)
-        # self.model.from_xml_path("home/nidhi/MPC_python/mujoco_rbt/assets=/ball.xml") 
-        self.start_time = time.time
-        self.joint_names = ["joint1","joint2","joint3","joint4","joint5","joint6","joint7"]
-        self.joint_ids = self.get_jointIds()
-        self.max_position = [3,3,3,3,3,3,3]
-        self.min_position = [-3,-3,-3,-3,-3,-3,-3]
+            urdf_path = "/home/nidhi/MPC_python/mujoco_reactive_controller/urdf/xarm7.urdf"
+        return xml_path, urdf_path
+
+    def set_robot_params(self):
+        self.max_position = [3, 3, 3, 3, 3, 3, 3]
+        self.min_position = [-3, -3, -3, -3, -3, -3, -3]
         self.gain_parm = [1500, 1500, 1000, 1000, 1000, 800, 800]
-        self.min_velocity=[-10, -10, -10, -10, -10, -10,-10]
-        self.max_velocity=[10, 10, 10, 1, 10, 10,10]
-        self.min_effort = np.array([-2000,-2000,-2000,-2000,-2000,-2000,-2000])
-        self.max_effort = np.array([2000,2000,2000,2000,2000,2000,2000])
+        self.min_velocity = [-10, -10, -10, -10, -10, -10, -10]
+        self.max_velocity = [10, 10, 10, 10, 10, 10, 10]
+        self.min_effort = np.array([-2000, -2000, -2000, -2000, -2000, -2000, -2000])
+        self.max_effort = np.array([2000, 2000, 2000, 2000, 2000, 2000, 2000])
         self.antiwindup = False
-        self.reset_joints()
         self.integral = np.zeros(7)
         self.prev_error = np.zeros(7)
         self.eef_name = "end_effector_dummy"
-        # robot setup
-        self.robot = rtb.robot.Robot.URDF(file_path=path2urdf)
-        self.link1 = rtb.robot.DHLink(d=0.267, alpha=0.0, theta=0.0, a=0.0, m =2.382)
-        self.link2 = rtb.robot.DHLink(d=0., alpha=-np.pi/2, theta=0.0, a=0.0, m =1.869)
-        self.link3 = rtb.robot.DHLink(d=0.293, alpha=np.pi/2, theta=0.0, a=0.0, m = 1.6383)
-        self.link4 = rtb.robot.DHLink(d=0., alpha=-np.pi/2, theta=0.0, a=0.0525, m = 1.7269)
-        self.link5 = rtb.robot.DHLink(d=0.3425, alpha=np.pi/2, theta=0.0, a=0.0775, m =1.3203)
-        self.link6 = rtb.robot.DHLink(d=0., alpha=np.pi/2, theta=0.0, a=0.0, m= 1.325)
-        self.link7 = rtb.robot.DHLink(d=0.097, alpha=-np.pi/2, theta=0.0, a=0.076, m = 0.17)
-        self.robot_dh = rtb.robot.DHRobot([self.link1, self.link2,self.link3, self.link4,self.link5, self.link6, self.link7])
-        self.start_time = time.time()
-        self.curr_time = time.time() - self.start_time
-        print("---------all good loading robots------------")
+        self.eef_site_id = 7
+
+    def load_rtb_robot(self, urdf_path):
+        robot = rtb.robot.Robot.URDF(file_path=urdf_path)
+        self.robot_dh = rtb.robot.DHRobot([
+            rtb.robot.DHLink(d=0.267, alpha=0.0, theta=0.0, a=0.0, m=2.382),
+            rtb.robot.DHLink(d=0., alpha=-np.pi/2, theta=0.0, a=0.0, m=1.869),
+            rtb.robot.DHLink(d=0.293, alpha=np.pi/2, theta=0.0, a=0.0, m=1.6383),
+            rtb.robot.DHLink(d=0., alpha=-np.pi/2, theta=0.0, a=0.0525, m=1.7269),
+            rtb.robot.DHLink(d=0.3425, alpha=np.pi/2, theta=0.0, a=0.0775, m=1.3203),
+            rtb.robot.DHLink(d=0., alpha=np.pi/2, theta=0.0, a=0.0, m=1.325),
+            rtb.robot.DHLink(d=0.097, alpha=-np.pi/2, theta=0.0, a=0.076, m=0.17),
+        ])
+        return robot
 
     def reset_joints(self):
-
-        angles = [0,-1, 0, 0, 0.0, np.pi/3, 0]
+        angles = [0, -1, 0, 0, 0.0, np.pi/3, 0]
         for joint, ang in zip(self.joint_ids, angles):
             self.data.qpos[joint] = ang
-
-
-
         mujoco.mj_forward(self.model, self.data)
         mujoco.mj_step(self.model, self.data)
         self.run(angles)
@@ -80,167 +71,121 @@ class RoboEnv(MuJoCoBase):
         print("robot set to initial pose")
 
 
-    def get_jointIds(self):
-        joint_ids =[]
-        for joint in self.joint_names:
-            joint_ids.append(self.model.jnt(joint).id)
-        return joint_ids
 
-    def get_joint_positions(self):
-        q = []
-        for j in self.joint_ids:
-            q.append(self.data.qpos[j])
-
-        return q
-
-    def get_joint_vel(self):
-        dq = []
-        for j in self.joint_ids:
-            dq.append(self.data.qvel[j])
-
-        return dq
-    
-    def get_joint_acc(self):
-        ddq = []
-        for j in self.joint_ids:
-            ddq.append(self.data.qacc[j])
-
-        return ddq        
+    #################################
+    # sensor reading
+    ################################        
 
     def get_ee_wrench(self):
-
-        self.force_ndim = 3
-        self.torque_ndim = 3
-        # Get the orientation matrix of the force-torque (FT) sensor
-        ft_ori_mat = self.data.site_xmat[0].reshape(3, 3)
-        force = self.data.sensordata[0:3]
-        torque = self.data.sensordata[3:6]
-        # print(self.data.sensordata)
-        # sensor_body_id = self.model.sensor_bbjid[0]
-        force = np.dot(ft_ori_mat, force)
-        torque = np.dot(ft_ori_mat, torque)
-        wrench = np.concatenate([force, torque])
-        # print("t", torque)
-        wrench = np.array([wrench[0],wrench[1],wrench[2],wrench[3],wrench[4],wrench[5]])
-        return -wrench
+        ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
+        force = np.dot(ft_ori_mat, self.data.sensordata[21:24])
+        torque = np.dot(ft_ori_mat, self.data.sensordata[24:27])
+        return -np.concatenate([force, torque])
 
     def get_ee_vel(self):
-        self.vel_ndim = 3
-        ft_ori_mat = self.data.site_xmat[0].reshape(3, 3)
-        v = self.data.sensordata[6:9]
-        v = np.dot(ft_ori_mat, v)
-        return v
+        ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
+        return np.dot(ft_ori_mat, self.data.sensordata[27:30])
 
     def get_ee_position(self):
-        body_name = "link7"
-        return self.data.body(body_name).xpos
-
-    def get_ee_pose(self):
-        return self.data.xpos
+        return self.data.body(self.eef_name).xpos
 
     def get_jacobian(self):
-        # q_mujoco = self.get_joint_positions()
-        # J = np.array(self.robot.jacobe(q_mujoco))
-        site_id = 0
-        mjlib = mjbindings.mjlib
-
         jacp = np.zeros((3, self.model.nv))
         jacr = np.zeros((3, self.model.nv))
-        mjlib.mj_jacSite(self.model, self.data, jacp, jacr, site_id)
-        J = []
+        mjbindings.mjlib.mj_jacSite(self.model, self.data, jacp, jacr, self.eef_site_id)
         jac = np.vstack([jacp, jacr])
-        J = jac[:, self.joint_ids]
-        return J
-    
+        return jac[:, self.joint_ids]
 
+    def get_joint_torque_sensor(self):
+        joint_torque_sensor = []
+        for i in range(0, 7):
+            ori_mat = self.data.site_xmat[i].reshape(3, 3)
+            # torque = np.dot(ft_ori_mat, self.data.sensordata[3:6])
+            torque =  self.data.sensordata[i*3:i*3+3]
+            joint_torque_sensor.append(torque[np.argmax(np.abs(torque))])
+        return joint_torque_sensor
 
-    def get_rbt_joint_pos(self):
-        pass
+    #################################
+    # numerical modelling mujoco
+    ################################
+    def get_joint_ids(self):
+        return [self.model.jnt(joint).id for joint in self.joint_names]
 
-    def get_rbt_joint_vel(self):
-        pass
+    def get_joint_positions(self):
+        return [self.data.qpos[j] for j in self.joint_ids]
 
+    def get_joint_vel(self):
+        return [self.data.qvel[j] for j in self.joint_ids]
 
-    def get_forward_dynamics(self, wrench):
-        joint_torque= self.data.actuator_force[self.joint_ids]
-        q = self.get_joint_positions()
-        dq = self.get_joint_vel()
-        M_q = self.get_M_()
-        c_q = self.data.qfrc_bias[self.joint_ids]
-        J_q = self.get_jacobian()
-        Q=np.matmul(np.linalg.inv(M_q), (joint_torque ))    
-        ddq = []
-        for joint in self.joint_ids:
-            ddq.append(Q[joint])
-        return ddq
-
-    def get_joint_torque(self):
-        joint_t1= self.data.qfrc_actuator[self.joint_ids]
-        joint_t2 = self.data.qfrc_constraint[self.joint_ids]
-        joint_torque = joint_t1 
-        dq = self.get_joint_vel()
-        ddq = self.get_joint_acc()
-        M = self.get_M_()
-        c_q = self.data.qfrc_bias[self.joint_ids]
-        # T = self.data.qfrc_inverse.copy()[self.joint_ids]
-        # print("m ddq",np.dot(M,ddq)-c_q)
-        # print("cc", c_q)
-        # print("t",joint_torque+c_q)
-        T = np.dot(M,ddq) + np.dot(c_q,dq) +self.data.qfrc_gravcomp[self.joint_ids]
-        # print("actua",joint_torque )
-        # print("torque", T)
-        return T, joint_torque
-
-
-    def get_rbt_end_eff_pose(self):
-        q_mujoco = self.get_joint_positions()
-        pose = self.robot.fkine(q_mujoco)
-        pos = pose.t
-        orient = pose.R
-        return pose, pos, orient
+    def get_joint_acc(self):
+        return [self.data.qacc[j] for j in self.joint_ids]
 
     def get_M_(self):
         M_full = np.zeros((self.model.nv, self.model.nv))
         mujoco.mj_fullM(self.model, M_full, self.data.qM)
-        M = M_full[self.joint_ids, :][:, self.joint_ids]
-        return M
+        return M_full[self.joint_ids, :][:, self.joint_ids]
+
+    def get_forward_dynamics(self, wrench):
+        M_q = self.get_M_()
+        Q = np.matmul(np.linalg.inv(M_q), self.data.actuator_force[self.joint_ids])
+        return [Q[joint] for joint in self.joint_ids]
+
+    def get_joint_torque_mujoco(self):
+        joint_torque = self.data.qfrc_actuator[self.joint_ids]
+        M = self.get_M_()
+        ddq = self.get_joint_acc()
+        c_q = self.data.qfrc_bias[self.joint_ids]
+        T = np.dot(M, ddq) + c_q 
+        return T, joint_torque
+
+    #################################
+    #           rbt
+    ################################
+
+    def get_rtb_end_eff_pose(self):
+        q_mujoco = self.get_joint_positions()
+        pose = self.robot.fkine(q_mujoco)
+        return pose, pose.t, pose.R
+
+    def get_rtb_jacobian(self)
+
+    def get_rtb_joint_torque(self):
+        pass
+
+
+
+
+
+    #################################
+    #           run sim
+    ################################
+
+
     def update_sim(self):
-        viewport_width, viewport_height = glfw.get_framebuffer_size(
-                self.window)
+        viewport_width, viewport_height = glfw.get_framebuffer_size(self.window)
         viewport = mujoco.MjrRect(0, 0, viewport_width, viewport_height)
-
-            # Update scene and render
-        mujoco.mjv_updateScene(self.model, self.data, self.opt, None, self.cam,
-                               mujoco.mjtCatBit.mjCAT_ALL.value, self.scene)
+        mujoco.mjv_updateScene(self.model, self.data, self.opt, None, self.cam, mujoco.mjtCatBit.mjCAT_ALL.value, self.scene)
         mujoco.mjr_render(viewport, self.scene, self.context)
-
-            # swap OpenGL buffers (blocking call due to v-sync)
         glfw.swap_buffers(self.window)
-
-            # process pending GUI events, call GLFW callbacks
         glfw.poll_events()
 
-
     def run(self, control_input):
-        # this works like a position controller 
         self.data.ctrl[0:7] = control_input
-        # self.data.ctrl[-1] = 5
         mujoco.mj_step(self.model, self.data)
         mujoco.mj_rnePostConstraint(self.model, self.data)
+        self.curr_time = time.time() - self.start_time
         self.update_sim()
 
 
 if __name__ == '__main__':
-    print("testing robot.py setup")
+    print("Testing robot.py setup")
     env = RoboEnv()
-    count = 0 
-    mpc = MPC()
-    q= env.get_joint_positions()
+    mpc = MPC(dt=1/60)  # Assuming dt is 1/60
+    count = 0
+    q = env.get_joint_positions()
     dq = env.get_joint_vel()
-    rx = .8
-    ry =-.2
-    rz = .3
-    while count< 100:
-        mpc.run_mpc(rx,ry,rz,q, env.joint_ids,dq, env)
-        count = count+1
-    print("all good so far")
+    rx, ry, rz = 0.8, -0.2, 0.3
+    while count < 100:
+        mpc.run_opt_controller(target_position=[rx, ry, rz], target_vel=[0, 0, 0], q=q, dq=dq, robot=env)
+        count += 1
+    print("All good so far")

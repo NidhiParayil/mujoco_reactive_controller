@@ -11,30 +11,34 @@ import time
 
 
 
-def generate_save_plt(x, y1, y2, y3, title, axis_names, legend, time1, time2):
-    fig, axs = plt.subplots(1, 3,figsize=(15, 5))
+def generate_save_plt(x, y1, y2, y3, y4, title, axis_names, legend, time1, time2):
+    fig, axs = plt.subplots(2, 2,figsize=(10, 10))
     plt.grid(True)
-    colors = ["green", "blue", "red", "yellow", "orange", "pink"]
+    colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
 
+    # Plot each set of data in the corresponding subplot
     for i in range(y1.shape[1]):
-        axs[0].plot(x, y1[:, i], color=colors[i % len(colors)])
-    for i in range(y2.shape[1]):
-        axs[1].plot(x, y2[:, i], color=colors[i % len(colors)])
-        
-    for i in range(y3.shape[1]):
-        axs[2].plot(x, y3[:, i], color=colors[i % len(colors)])
-    # axs[0].set_xlim(time1, time2)
-    # axs[1].set_xlim(time1, time2)
+        axs[0, 0].plot(x, y1[:, i], color=colors[i % len(colors)])
+        axs[0, 1].plot(x, y2[:, i], color=colors[i % len(colors)])
+        axs[1, 0].plot(x, y3[:, i], color=colors[i % len(colors)])
+        axs[1, 1].plot(x, y4[:, i], color=colors[i % len(colors)])
 
-    axs[0].set_xlabel(axis_names[0])
-    axs[0].set_ylabel("act force / torque")
-    axs[1].set_xlabel(axis_names[0])
-    axs[1].set_ylabel("m X ddq + c+ g")
-    axs[2].set_xlabel(axis_names[0])
-    axs[2].set_ylabel("J.T x wrench")
+    # Set x and y labels, titles, and limits
+    axs[0, 0].set_xlabel(axis_names[0])
+    axs[0, 0].set_ylabel("act force / torque")
+    axs[0, 1].set_xlabel(axis_names[0])
+    axs[0, 1].set_ylabel("m X ddq + c+ g")
+    axs[1, 0].set_xlabel(axis_names[0])
+    axs[1, 0].set_ylabel("sensor_reading")
+    axs[1, 1].set_xlabel(axis_names[0])
+    axs[1, 1].set_ylabel("rtb calculation")  # Change to appropriate label
 
-    axs[0].legend(legend)
-    # axs[1].legend(legend)
+    plt.legend(legend)
+    axs[0, 0].set_ylim(-100, 100)  # Example y-limits
+    axs[0, 1].set_ylim(-100, 100)
+    axs[1, 0].set_ylim(-100, 100)
+    axs[1, 1].set_ylim(-100, 100)
+        # axs[1].legend(legend)
 
     fig.suptitle(title)
 
@@ -75,7 +79,7 @@ def mean_squared_error(x, y):
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    Tmax, dT = 10, 5
+    Tmax, dT = 10, 10
     mpc = MPC(dt=dT)
     curr_robot_position = robot.data.site_xpos[0]
     x, y, z, rx, ry, rz = get_path(curr_robot_position, Tmax, dT)
@@ -96,44 +100,20 @@ if __name__ == '__main__':
     # curr_time = time.time() - start_time
     q, dq = robot.get_joint_positions(), robot.get_joint_vel()
     ee_pos = robot.get_ee_position()
-    mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
-    # for i in range(0, 100):
-    #     mpc.resolve_rate_controller(robot, target_vel)
+    # mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
+    for i in range(0, 100):
+        mpc.resolve_rate_controller(robot, target_vel)
 
 
     # wrench = np.asarray(mpc.wrench)
-    time = np.asarray(mpc.opt_ctrl.time)
+    time = np.asarray(mpc.time)
     act = np.asarray(mpc.act)
     T = np.asarray(mpc.T)
     W_joint = np.asarray(mpc.wrench_jac)
-
-    # sensor_v = np.asarray(mpc.sensor_v)
-    # v = np.asarray(mpc.v)
-
+    joint_tor_sensor = np.asarray(mpc.joint_tor_sensor)
+    rtb_torque = np.asarray(mpc.rtb_torque)
 
 
-
-    # generate_save_plt(x = time, y1 =v, y2 = sensor_v ,title =  "compare vel",axis_names= ["time", "vel"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
-  
+    generate_save_plt(x = time, y1 = act, y2 = T, y3 = joint_tor_sensor, y4 = rtb_torque, title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
 
 
-    generate_save_plt(x = time, y1 = act, y2 = T, y3 = W_joint,title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
-    # generate_save_joint_plt(x = time, y = wrench, title = "wrench", axis_names= ["time", "force"], legend =["x","y","z","rx","ry","rz"], time1=time[0], time2=time[-1])
-
-
-
-
-    
-    # # Collect remaining data
-    # robo_x = np.array(mpc.robo_x)
-    # robo_y = np.array(mpc.robo_y)
-    # robo_z = np.array(mpc.robo_z)
-    # time_ = np.array(mpc.time_)
-    # robo_q = np.array(mpc.robot_q)
-    # robo_dq = np.array(mpc.robot_dq)
-    # robo_ctl = np.array(mpc.robot_ctl)
-    # err_x = np.array(mpc.robot_err_x)
-    # err_y = np.array(mpc.robot_err_y)
-    # err_z = np.array(mpc.robot_err_z)
-
-    # np.savez("pid_position.npz", robo_x=robo_x, robo_y=robo_y, robo_z=robo_z, err_x=err_x, err_y=err_y, err_z=err_z, robo_q=robo_q, robo_dq=robo_dq, time_=time_, robo_ctl=robo_ctl)
