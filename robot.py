@@ -147,10 +147,21 @@ class RoboEnv(MuJoCoBase):
         pose = self.robot.fkine(q_mujoco)
         return pose, pose.t, pose.R
 
-    def get_rtb_jacobian(self)
+    def get_rtb_jacobian(self):
+        q = self.get_joint_positions()
+        J = self.robot_rtb.jacob0(q)
+        return J
 
     def get_rtb_joint_torque(self):
-        pass
+        q = self.get_joint_positions()
+        dq = self.get_joint_vel()
+        ddq = self.get_joint_acc()
+
+        M = self.robot_dh.inertia(q)
+        C = self.robot_dh.coriolis(q, dq)
+        G = self.robot_dh.gravload(q)
+        T = M * ddq +C +G
+        return T
 
 
 

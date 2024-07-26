@@ -37,7 +37,7 @@ def generate_save_plt(x, y1, y2, y3, y4, title, axis_names, legend, time1, time2
     axs[0, 0].set_ylim(-100, 100)  # Example y-limits
     axs[0, 1].set_ylim(-100, 100)
     axs[1, 0].set_ylim(-100, 100)
-    axs[1, 1].set_ylim(-100, 100)
+    # axs[1, 1].set_ylim(-1000, 100)
         # axs[1].legend(legend)
 
     fig.suptitle(title)
