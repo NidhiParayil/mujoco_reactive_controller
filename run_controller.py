@@ -31,12 +31,12 @@ def generate_save_plt(x, y1, y2, y3, y4, title, axis_names, legend, time1, time2
     axs[1, 0].set_xlabel(axis_names[0])
     axs[1, 0].set_ylabel("sensor_reading")
     axs[1, 1].set_xlabel(axis_names[0])
-    axs[1, 1].set_ylabel("rtb calculation")  # Change to appropriate label
+    axs[1, 1].set_ylabel("torque diff")  # Change to appropriate label
 
     plt.legend(legend)
-    axs[0, 0].set_ylim(-100, 100)  # Example y-limits
-    axs[0, 1].set_ylim(-100, 100)
-    axs[1, 0].set_ylim(-100, 100)
+    # axs[0, 0].set_ylim(-100, 100)  # Example y-limits
+    # axs[0, 1].set_ylim(-100, 100)
+    # axs[1, 0].set_ylim(-100, 100)
     # axs[1, 1].set_ylim(-1000, 100)
         # axs[1].legend(legend)
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     target_pose = np.random.uniform(-np.pi/2, np.pi/2, size=7)
     # target_vel = np.array([5,10.,3,-0,-0.,0,0])
-    target_vel  =[0.3,0.0,0.,0,0,0.]
+    target_vel  =[0.3,0.,0.,0,0,0.]
     ee_position = robot.get_ee_position()
     print("position",ee_position)
     target_position = [ee_position[0]+.3,ee_position[1],ee_position[2]]
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     q, dq = robot.get_joint_positions(), robot.get_joint_vel()
     ee_pos = robot.get_ee_position()
     # mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
-    for i in range(0, 100):
+    for i in range(0, 400):
         mpc.resolve_rate_controller(robot, target_vel)
 
 
@@ -114,6 +114,6 @@ if __name__ == '__main__':
     rtb_torque = np.asarray(mpc.rtb_torque)
 
 
-    generate_save_plt(x = time, y1 = act, y2 = T, y3 = joint_tor_sensor, y4 = rtb_torque, title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
+    generate_save_plt(x = time, y1 = act, y2 = T, y3 = joint_tor_sensor, y4 = W_joint, title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
 
 

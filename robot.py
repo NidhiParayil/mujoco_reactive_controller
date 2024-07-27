@@ -22,6 +22,7 @@ class RoboEnv(MuJoCoBase):
         self.set_robot_params()
         self.robot_rtb = self.load_rtb_robot(urdf_path)
         self.reset_joints()
+        self.j_vel_prev = np.zeros(7)
         print("---------all good loading robots------------")
 
     def get_paths(self, is_windows):
@@ -100,7 +101,7 @@ class RoboEnv(MuJoCoBase):
         joint_torque_sensor = []
         for i in range(0, 7):
             ori_mat = self.data.site_xmat[i].reshape(3, 3)
-            # torque = np.dot(ft_ori_mat, self.data.sensordata[3:6])
+            torque = np.dot(ori_mat, self.data.sensordata[3:6])
             torque =  self.data.sensordata[i*3:i*3+3]
             joint_torque_sensor.append(torque[np.argmax(np.abs(torque))])
         return joint_torque_sensor
@@ -134,8 +135,9 @@ class RoboEnv(MuJoCoBase):
         joint_torque = self.data.qfrc_actuator[self.joint_ids]
         M = self.get_M_()
         ddq = self.get_joint_acc()
+        dq = self.get_joint_vel()
         c_q = self.data.qfrc_bias[self.joint_ids]
-        T = np.dot(M, ddq) + c_q 
+        T = np.dot(M, ddq) + np.dot(c_q, dq) 
         return T, joint_torque
 
     #################################
@@ -154,13 +156,13 @@ class RoboEnv(MuJoCoBase):
 
     def get_rtb_joint_torque(self):
         q = self.get_joint_positions()
-        dq = self.get_joint_vel()
-        ddq = self.get_joint_acc()
+        dq = np.asarray(self.get_joint_vel())
+        ddq = np.asarray(self.get_joint_acc())
 
         M = self.robot_dh.inertia(q)
         C = self.robot_dh.coriolis(q, dq)
         G = self.robot_dh.gravload(q)
-        T = M * ddq +C +G
+        T = np.dot(M,ddq) +np.dot(C, dq) +G
         return T
 
 

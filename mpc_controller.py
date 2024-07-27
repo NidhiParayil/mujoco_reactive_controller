@@ -49,6 +49,30 @@ class MPC:
         self.v, self.sensor_v = [], []
         self.joint_tor_sensor, self.rtb_torque,  self.time = [], [], []
 
+    def get_next_torque(self, wrench, robot, target):
+        self.Y = .01
+        self.Q = np.eye(self.n*2) * self.Y
+        J = robot.get_jacobian()
+        Aeq, beq = np.zeros((13,14)), np.zeros(13)
+        Aeq[0:6,0:7], beq[0:6] = J, target
+
+        Aeq[6:13,7:14], beq[6:13] = np.eye(7), np.dot(J.T,wrench)
+        Ain, bin = np.zeros((14,14)) , np.zeros(14)
+        lb = np.asarray([-1000, -1000,-1000,-1000,-1000,-1000,-1000,-1000, -1000,-1000,-1000,-1000,-1000,-1000]) 
+        ub = np.asarray([1000, 1000,1000,1000,1000,1000,1000,1000, 1000,1000,1000,1000,1000,1000])
+        c = np.zeros(self.n*2)
+        M = robot.get_M_()
+        q_tau = qp.solve_qp(self.Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver='cvxopt')
+        tau = q_tau[7:14]
+        ext_ddq = np.dot(np.linalg.pinv(M),tau)
+        ddq = np.asarray(ext_ddq )
+        dq = np.asarray(robot.get_joint_vel())
+        q = np.asarray(robot.get_joint_positions())
+        target_dq = ddq * 60
+        print(tau)
+        return target_dq, q_tau[0:7]
+
+
     def run_opt_controller(self, target_position, target_vel, q, dq, robot):
         val, pos, oreint = robot.get_rtb_end_eff_pose()
         i = 0
@@ -124,7 +148,7 @@ class MPC:
     def update_debug_values(self, J, wrench, Torque, robot):
         self.T.append(Torque)
         self.act.append(robot.get_joint_torque_mujoco()[1])
-        self.wrench_jac.append(np.matmul(J.T, wrench))
+        self.wrench_jac.append(Torque - robot.get_joint_torque_sensor() )
         self.v.append(np.dot(J, robot.get_joint_vel())[0:3])
         self.sensor_v.append(robot.get_ee_vel())
         self.joint_tor_sensor.append(robot.get_joint_torque_sensor())
@@ -175,15 +199,20 @@ class MPC:
         q_k = robot.get_joint_positions()
         dq_k = np.matmul(pnv_j, target_vel)
         err = [0, 0, 0]
-        dt = 1.0 / 60.0
-        self.target_pos = q_k +  dq_k *60
+        dt = 60.0
+        wrench = robot.get_ee_wrench()
+        dq_ext, q_ = self.get_next_torque(wrench, robot, target_vel)
+        dq_k = dq_ext + dq_k
+        self.target_pos = q_  +dq_k *dt
         robot.run(self.target_pos)
 
         # self.update_plot_values(robot, err)
-        wrench = robot.get_ee_wrench()
+        
+    
         Torque, j_T = robot.get_joint_torque_mujoco()
         self.prev_time = robot.curr_time
         self.update_debug_values(J, wrench, Torque, robot)
+        # print(self.get_next_torque(wrench, robot), self.target_pos)
         
 
     def update_plot_values(self, robot, err):
