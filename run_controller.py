@@ -44,19 +44,37 @@ def generate_save_plt(x, y1, y2, y3, y4, title, axis_names, legend, time1, time2
 
     plt.savefig('./plot_results/' + title + '.png')
 
-def generate_save_joint_plt(x, y, title, axis_names, legend, time1, time2):
-    fig, ax = plt.subplots()
+def generate_save_plt_ee(x, y1, y2 ,title, axis_names, legend, time1, time2):
+    fig, axs = plt.subplots(1, 2,figsize=(10, 10))
     plt.grid(True)
-    colors = ["green", "blue", "red", "yellow", "orange", "pink", "black"]
-    for i in range(0, y.shape[1]):
-        plt.plot(x, y[:, i], colors[i % len(colors)])
-    ax.set_xlim(time1, time2)
-    plt.title(title)
-    plt.legend(legend)
-    plt.xlabel(axis_names[0])
-    plt.ylabel(axis_names[1])
-    plt.savefig('./plot_results/' + title + '.png')
+    colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
+    # Plot each set of data in the corresponding subplot
+    for i in range(y2.shape[1]):
+        axs[0].scatter(x, y1[:, i], color=colors[i % len(colors)])
+        axs[1].plot(x, y2[:, i], color=colors[i % len(colors)])
+        # axs[1, 0].plot(x, y3[:, i], color=colors[i % len(colors)])
+        # axs[1, 1].plot(x, y4[:, i], color=colors[i % len(colors)])
 
+    # Set x and y labels, titles, and limits
+    axs[0].set_xlabel(axis_names[0])
+    axs[0].set_ylabel("wrench")
+    axs[1].set_xlabel(axis_names[0])
+    axs[1].set_ylabel("current end eff pos")
+    # axs[1, 0].set_xlabel(axis_names[0])
+    # axs[1, 0].set_ylabel("sensor_reading")
+    # axs[1, 1].set_xlabel(axis_names[0])
+    # axs[1, 1].set_ylabel("torque diff")  # Change to appropriate label
+
+    plt.legend(legend)
+    # axs[0, 0].set_ylim(-100, 100)  # Example y-limits
+    # axs[0, 1].set_ylim(-100, 100)
+    # axs[1, 0].set_ylim(-100, 100)
+    # axs[1, 1].set_ylim(-1000, 100)
+        # axs[1].legend(legend)
+
+    fig.suptitle(title)
+
+    plt.savefig('./plot_results/' + title + '.png')
 
 
 
@@ -79,7 +97,7 @@ def mean_squared_error(x, y):
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    Tmax, dT = 10, 10
+    Tmax, dT = 10, 400
     mpc = MPC(dt=dT)
     curr_robot_position = robot.data.site_xpos[0]
     x, y, z, rx, ry, rz = get_path(curr_robot_position, Tmax, dT)
@@ -101,7 +119,7 @@ if __name__ == '__main__':
     q, dq = robot.get_joint_positions(), robot.get_joint_vel()
     ee_pos = robot.get_ee_position()
     # mpc.run_opt_controller(target_position, target_vel,q,dq, robot)
-    for i in range(0, 400):
+    for i in range(0, dT):
         mpc.resolve_rate_controller(robot, target_vel)
 
 
@@ -112,8 +130,10 @@ if __name__ == '__main__':
     W_joint = np.asarray(mpc.wrench_jac)
     joint_tor_sensor = np.asarray(mpc.joint_tor_sensor)
     rtb_torque = np.asarray(mpc.rtb_torque)
-
+    W = np.asarray(mpc.wrench)
+    ee_pos_ = np.asarray(mpc.ee_pos_)
 
     generate_save_plt(x = time, y1 = act, y2 = T, y3 = joint_tor_sensor, y4 = W_joint, title =  "compare torques",axis_names= ["time", "torque"], legend =["1","2","3","4", "5", "6", "7"],time1 = time[0],time2=time[-1])
+    generate_save_plt_ee(x = time, y1 = W, y2 =ee_pos_, title =  "end effector parameters tree",axis_names=["time", "torque"], legend =["x","y","z"],time1 = time[0],time2=time[-1])
 
 

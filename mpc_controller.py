@@ -47,29 +47,42 @@ class MPC:
         self.robot_err_x, self.robot_err_y, self.robot_err_z = [], [], []
         self.act, self.T, self.wrench_jac = [], [], []
         self.v, self.sensor_v = [], []
-        self.joint_tor_sensor, self.rtb_torque,  self.time = [], [], []
+        self.joint_tor_sensor, self.rtb_torque,  self.time, self.wrench, self.ee_pos_ =[],  [], [], [], []
 
     def get_next_torque(self, wrench, robot, target):
-        self.Y = .01
+        self.Y = 1
         self.Q = np.eye(self.n*2) * self.Y
         J = robot.get_jacobian()
-        Aeq, beq = np.zeros((13,14)), np.zeros(13)
-        Aeq[0:6,0:7], beq[0:6] = J, target
+        Aeq, beq = np.zeros((14,14)), np.zeros(14)
+        Aeq[0:7,0:7], beq[0:7] = np.eye(7), np.ones(7)
 
-        Aeq[6:13,7:14], beq[6:13] = np.eye(7), np.dot(J.T,wrench)
+        Aeq[7:14,7:14], beq[7:14] = np.eye(7), np.dot(J.T,wrench)
         Ain, bin = np.zeros((14,14)) , np.zeros(14)
         lb = np.asarray([-1000, -1000,-1000,-1000,-1000,-1000,-1000,-1000, -1000,-1000,-1000,-1000,-1000,-1000]) 
         ub = np.asarray([1000, 1000,1000,1000,1000,1000,1000,1000, 1000,1000,1000,1000,1000,1000])
         c = np.zeros(self.n*2)
         M = robot.get_M_()
+
+        # Build the matrices for the QP problem
+        # P = np.kron(np.eye(N), R) + np.kron(np.eye(N), B.T @ Q @ B)
+        x0 = robot.get_joint_positions()
+        A = np.eye(7)
+        B = np.eye(7)
+        Q= np.eye(7)
+        x_ref = target
+        self.Q[0:7, 0:7] =  (x_ref - A @ x0).T @ Q @ (x_ref - A @ x0)* .1
+
+        # # Define the constraint matrices
+        # G = np.vstack((np.eye(N), -np.eye(N)))
+        # h = np.hstack((u_max * np.ones(N), -u_min * np.ones(N)))
         q_tau = qp.solve_qp(self.Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver='cvxopt')
         tau = q_tau[7:14]
         ext_ddq = np.dot(np.linalg.pinv(M),tau)
         ddq = np.asarray(ext_ddq )
-        dq = np.asarray(robot.get_joint_vel())
-        q = np.asarray(robot.get_joint_positions())
+        # dq = np.asarray(robot.get_joint_vel())
+        # q = np.asarray(robot.get_joint_positions())
         target_dq = ddq * 60
-        print(tau)
+        # print(target-q_tau[0:7])
         return target_dq, q_tau[0:7]
 
 
@@ -154,6 +167,9 @@ class MPC:
         self.joint_tor_sensor.append(robot.get_joint_torque_sensor())
         self.time.append(robot.curr_time)
         self.rtb_torque.append(robot.get_rtb_joint_torque())
+        self.wrench.append(wrench)  
+        ee = robot.get_ee_position()
+        self.ee_pos_.append([ee[0],ee[1],ee[2]])
 
     def joint_velocity_damper(self, robot):
         ps, pi = 0.05, 0.9
@@ -199,11 +215,12 @@ class MPC:
         q_k = robot.get_joint_positions()
         dq_k = np.matmul(pnv_j, target_vel)
         err = [0, 0, 0]
-        dt = 60.0
+        dt = 60.
         wrench = robot.get_ee_wrench()
-        dq_ext, q_ = self.get_next_torque(wrench, robot, target_vel)
-        dq_k = dq_ext + dq_k
-        self.target_pos = q_  +dq_k *dt
+        target_pos = q_k  +dq_k *dt
+        dq_ext, q_ = self.get_next_torque(wrench, robot, target_pos)
+        dq_k =  dq_ext + dq_k
+        self.target_pos = q_ + dq_k *dt
         robot.run(self.target_pos)
 
         # self.update_plot_values(robot, err)

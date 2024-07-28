@@ -88,7 +88,7 @@ class RoboEnv(MuJoCoBase):
         return np.dot(ft_ori_mat, self.data.sensordata[27:30])
 
     def get_ee_position(self):
-        return self.data.body(self.eef_name).xpos
+        return self.data.site_xpos[self.eef_site_id]
 
     def get_jacobian(self):
         jacp = np.zeros((3, self.model.nv))
