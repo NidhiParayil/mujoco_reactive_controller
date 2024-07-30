@@ -61,6 +61,33 @@ def generate_save_plt_ee(x, y1, y2, y3, title, axis_names, legend, time1, time2)
     fig.suptitle(title)
     plt.savefig(f'./plot_results/{title}.png')
 
+def generate_save_plt_opt_ctrl(x, y1, y2, y3, title, axis_names, legend, time1, time2):
+    fig, axs = plt.subplots(1, 3, figsize=(10, 10))
+    plt.grid(True)
+    legend_2 = ["1", "2", "3", "4", "5", "6", "7"]
+    colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
+
+    # Plot each set of data in the corresponding subplot
+    for i in range(y2.shape[1]):
+        axs[0].plot(x, y1[:, i], color=colors[i % len(colors)])
+        axs[1].plot(x, y2[:, i], color=colors[i % len(colors)])
+    # for i in range(y3.shape):
+    print(y3)
+    axs[2].plot(x, y3, color=colors[i % len(colors)])
+
+    # Set x and y labels, titles, and limits
+    axs[0].set_xlabel(axis_names[0])
+    axs[0].set_ylabel("u target")
+    axs[1].set_xlabel(axis_names[0])
+    axs[1].set_ylabel("u calculated")
+    axs[2].set_xlabel(axis_names[0])
+    axs[2].set_ylabel("cost")
+    axs[1].legend(legend)
+    axs[2].legend(legend_2)
+
+    fig.suptitle(title)
+    plt.savefig(f'./plot_results/{title}.png')
+
 
 def get_path(robo_pos, tmax, dt):
     Nmax = int(tmax / dt)
@@ -108,7 +135,9 @@ if __name__ == '__main__':
     ee_pos_ = np.asarray(mpc.ee_pos_)
     joint_vel_opt = np.asarray(mpc.joint_vel_opt)
     joint_pos = np.asarray(mpc.joint_pos)
-
+    target_u = np.asarray(mpc.target_u)
+    calculated_u = np.asarray(mpc.calculated_u)
+    cost = np.asarray(mpc.cost)
     generate_save_plt(time_arr, act, T, joint_tor_sensor, W_joint, 
                       "compare torques with tree opt controller with force", 
                       ["time", "torque"], ["1", "2", "3", "4", "5", "6", "7"], 
@@ -116,5 +145,9 @@ if __name__ == '__main__':
 
     generate_save_plt_ee(time_arr, W, ee_pos_, joint_vel_opt, 
                          "end effector parameters with tree opt controller with force", 
+                         ["time", "torque"], ["x", "y", "z"], 
+                         time_arr[0], time_arr[-1])
+    generate_save_plt_opt_ctrl(time_arr, target_u, calculated_u, cost, 
+                         "optimization parameters with tree opt controller with force", 
                          ["time", "torque"], ["x", "y", "z"], 
                          time_arr[0], time_arr[-1])

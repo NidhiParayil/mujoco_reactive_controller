@@ -11,7 +11,7 @@ from uncMPC import uncMPC
 import qpsolvers as qp
 from controller_performance import ControlPerformance
 import mpc_qp
-from IPython.display import display, clear_output
+# from IPython.display import display, clear_output
 import cvxpy as cp
 
 
@@ -51,6 +51,7 @@ class MPC:
         self.act, self.T, self.wrench_jac = [], [], []
         self.v, self.sensor_v, self.joint_vel_opt, self.joint_pos = [], [], [], []
         self.joint_tor_sensor, self.rtb_torque,  self.time, self.wrench, self.ee_pos_ =[],  [], [], [], []
+        self.calculated_u, self.cost, self.target_u = [], [], []
         self.u = 0
 
     def get_next_torque(self, wrench, robot, target, target_vel):
@@ -94,6 +95,9 @@ class MPC:
         print(u[:,0].value)
         print(target_vel)
         print("=====")
+        self.target_u.append(target_vel)
+        self.calculated_u.append(u[:,0].value)
+        self.cost.append(problem.value)
         return u[:,0].value 
 
     def update_wrench_sample(self, wrench):
@@ -179,7 +183,7 @@ class MPC:
         target_pos = q_k  +dq_k *dt
         dq_ext = self.get_next_torque(wrench, robot, target_pos, dq_k)
         
-        dq_k =  dq_ext
+        # dq_k =  dq_ext
         self.target_pos = (q_k+ dq_k*dt)
         curr_end_eff_position = robot.get_ee_position()
         robot.run(self.target_pos)
