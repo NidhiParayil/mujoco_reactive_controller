@@ -101,7 +101,7 @@ class MuJoCoBase():
         while not glfw.window_should_close(self.window):
             simstart = self.data.time
 
-            while (self.data.time - simstart < 1.0/60.0):
+            while (self.data.time - simstart < 1.0):
                 mj.mj_step(self.model, self.data)
 
             # get framebuffer viewport

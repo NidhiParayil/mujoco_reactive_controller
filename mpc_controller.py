@@ -11,6 +11,9 @@ from uncMPC import uncMPC
 import qpsolvers as qp
 from controller_performance import ControlPerformance
 import mpc_qp
+from IPython.display import display, clear_output
+import cvxpy as cp
+
 
 
 class MPC:
@@ -46,98 +49,52 @@ class MPC:
         self.A = np.zeros((self.n * 2, self.n * 2))
         self.robot_err_x, self.robot_err_y, self.robot_err_z = [], [], []
         self.act, self.T, self.wrench_jac = [], [], []
-        self.v, self.sensor_v = [], []
+        self.v, self.sensor_v, self.joint_vel_opt, self.joint_pos = [], [], [], []
         self.joint_tor_sensor, self.rtb_torque,  self.time, self.wrench, self.ee_pos_ =[],  [], [], [], []
+        self.u = 0
 
-    def get_next_torque(self, wrench, robot, target):
+    def get_next_torque(self, wrench, robot, target, target_vel):
         self.Y = 1
         self.Q = np.eye(self.n*2) * self.Y
-        J = robot.get_jacobian()
-        Aeq, beq = np.zeros((14,14)), np.zeros(14)
-        Aeq[0:7,0:7], beq[0:7] = np.eye(7), np.ones(7)
-
-        Aeq[7:14,7:14], beq[7:14] = np.eye(7), np.dot(J.T,wrench)
-        Ain, bin = np.zeros((14,14)) , np.zeros(14)
-        lb = np.asarray([-1000, -1000,-1000,-1000,-1000,-1000,-1000,-1000, -1000,-1000,-1000,-1000,-1000,-1000]) 
-        ub = np.asarray([1000, 1000,1000,1000,1000,1000,1000,1000, 1000,1000,1000,1000,1000,1000])
-        c = np.zeros(self.n*2)
         M = robot.get_M_()
+    
+        J = robot.get_jacobian()
+        A, B = np.zeros((14,14)), np.zeros((14,7))
+        A[0:7,0:7], B[0:7,0:7] = np.eye(7), np.eye(7)
 
-        # Build the matrices for the QP problem
-        # P = np.kron(np.eye(N), R) + np.kron(np.eye(N), B.T @ Q @ B)
+        A[7:14,7:14], B[7:14,0:7]= np.eye(7), M
+        dq_curr = robot.get_joint_vel()
+        joint_tor = robot.get_joint_torque_sensor()
+        target_vel = target_vel + np.dot(np.linalg.pinv(M),( np.dot(J.T, wrench)))
         x0 = robot.get_joint_positions()
-        A = np.eye(7)
-        B = np.eye(7)
         Q= np.eye(7)
-        x_ref = target
-        self.Q[0:7, 0:7] =  (x_ref - A @ x0).T @ Q @ (x_ref - A @ x0)* .1
-
-        # # Define the constraint matrices
-        # G = np.vstack((np.eye(N), -np.eye(N)))
-        # h = np.hstack((u_max * np.ones(N), -u_min * np.ones(N)))
-        q_tau = qp.solve_qp(self.Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver='cvxopt')
-        tau = q_tau[7:14]
-        ext_ddq = np.dot(np.linalg.pinv(M),tau)
-        ddq = np.asarray(ext_ddq )
-        # dq = np.asarray(robot.get_joint_vel())
-        # q = np.asarray(robot.get_joint_positions())
-        target_dq = ddq * 60
-        # print(target-q_tau[0:7])
-        return target_dq, q_tau[0:7]
-
-
-    def run_opt_controller(self, target_position, target_vel, q, dq, robot):
-        val, pos, oreint = robot.get_rtb_end_eff_pose()
-        i = 0
-        self.arrived = False
-        count_run_mpc = 0
-        wrench = [0.01] * 7
-        self.prev_time = robot.curr_time
-        robot.curr_time = time.time() - robot.start_time
-        self.wrench = []
-
-        while not self.arrived:
-            count_run_mpc += 1
-            q, dq = robot.get_joint_positions(), robot.get_joint_vel()
-            robot.curr_time = time.time() - robot.start_time
-            dt = robot.curr_time - self.prev_time
-
-            wrench = robot.get_ee_wrench()
-
-            M = robot.get_M_()
-            M_inv = np.linalg.inv(M)
-            self.wrench.append(wrench)
-            self.update_wrench_sample(wrench)
-            wrench_avg = np.mean(self.wrench_sample, axis=0)
-
-            J = robot.get_jacobian()
-            if robot.curr_time > self.stop_time:
-                self.arrived = True
-                print("Controller stopping")
-
-            self.Y = 0.1
-            self.Q = np.eye(self.n) * self.Y
-
-            acc = self.compute_acceleration(wrench, robot, J, dq)
-
-            Aeq, beq = self.setup_constraints(J, target_vel, robot)
-            Torque, j_T = robot.get_joint_torque_mujoco()
-            self.update_debug_values(J, wrench, Torque, robot)
-
-            Ain, bin = self.joint_velocity_damper(robot)
-
-            lb, ub = self.q_LB, self.q_UB
-
-            c = np.zeros(self.n)
-            dq_d = qp.solve_qp(self.Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver='cvxopt')
-
-            self.execute_control(dq_d, robot, target_position, target_vel, q, dq)
-
-            self.prev_time = robot.curr_time
-
-        self.finalize_control(dq_d, robot)
-        self.opt_ctrl.convert_np()
-        self.opt_ctrl.plot_performance()
+        x_ref = np.zeros(14) 
+        x_ref[0:7] = target 
+        T = 2
+        x = cp.Variable((14,T+1))
+        u = cp.Variable((7,T)) # u is joint velocity
+        cost = 0
+        constr = []
+        R = np.eye(7)
+        P = np.eye(14)
+        q = np.zeros(14)
+        q[0:7] = robot.get_joint_positions()
+        P = np.eye(14)*.1
+        G = np.eye(7)*.2
+        P = P.T @ P
+        G = G.T @G
+  
+        for t in range(T):
+            cost += cp.quad_form(x[:, t + 1] -x_ref, P)  + cp.quad_form(u[:, t], G)
+            constr += [x[:, t + 1] == np.dot(A, q )+ B @ (u[:, t])]
+            constr += [u[:,t] <= np.ones(7)*(1.5)]
+            constr += [u[:,t] >= np.ones(7)*(-1.5)]
+        problem = cp.Problem(cp.Minimize(cost), constr)
+        problem.solve()
+        print(u[:,0].value)
+        print(target_vel)
+        print("=====")
+        return u[:,0].value 
 
     def update_wrench_sample(self, wrench):
         self.wrench_sample = np.roll(self.wrench_sample, shift=-1, axis=0)
@@ -161,7 +118,7 @@ class MPC:
     def update_debug_values(self, J, wrench, Torque, robot):
         self.T.append(Torque)
         self.act.append(robot.get_joint_torque_mujoco()[1])
-        self.wrench_jac.append(Torque - robot.get_joint_torque_sensor() )
+        self.wrench_jac.append(np.dot(J.T, wrench))
         self.v.append(np.dot(J, robot.get_joint_vel())[0:3])
         self.sensor_v.append(robot.get_ee_vel())
         self.joint_tor_sensor.append(robot.get_joint_torque_sensor())
@@ -170,6 +127,8 @@ class MPC:
         self.wrench.append(wrench)  
         ee = robot.get_ee_position()
         self.ee_pos_.append([ee[0],ee[1],ee[2]])
+        self.joint_vel_opt.append(self.u)
+        self.joint_pos.append(robot.get_joint_positions())
 
     def joint_velocity_damper(self, robot):
         ps, pi = 0.05, 0.9
@@ -214,14 +173,19 @@ class MPC:
         target_vel = target
         q_k = robot.get_joint_positions()
         dq_k = np.matmul(pnv_j, target_vel)
-        err = [0, 0, 0]
-        dt = 60.
+
+        dt = 1
         wrench = robot.get_ee_wrench()
         target_pos = q_k  +dq_k *dt
-        dq_ext, q_ = self.get_next_torque(wrench, robot, target_pos)
-        dq_k =  dq_ext + dq_k
-        self.target_pos = q_ + dq_k *dt
+        dq_ext = self.get_next_torque(wrench, robot, target_pos, dq_k)
+        
+        dq_k =  dq_ext
+        self.target_pos = (q_k+ dq_k*dt)
+        curr_end_eff_position = robot.get_ee_position()
         robot.run(self.target_pos)
+        self.u = self.target_pos
+        if curr_end_eff_position[0]>robot.ee_max_reach:
+            robot.stop_robot = True
 
         # self.update_plot_values(robot, err)
         
@@ -230,20 +194,7 @@ class MPC:
         self.prev_time = robot.curr_time
         self.update_debug_values(J, wrench, Torque, robot)
         # print(self.get_next_torque(wrench, robot), self.target_pos)
-        
-
-    def update_plot_values(self, robot, err):
-        self.robo_x.append(robot.data.site_xpos[0][0])
-        self.robo_y.append(robot.data.site_xpos[0][1])
-        self.robo_z.append(robot.data.site_xpos[0][2])
-        self.time_.append(time.time())
-        self.robot_q.append(robot.get_joint_positions())
-        self.robot_dq.append(robot.get_joint_vel())
-        self.robot_ctl.append(robot.data.ctrl)
-        self.robot_err_x.append(err[0])
-        self.robot_err_y.append(err[1])
-        self.robot_err_z.append(err[2])
-
+    
 
 if __name__ == '__main__':
     print("Testing MPC setup")

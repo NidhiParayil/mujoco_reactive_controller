@@ -15,6 +15,7 @@ class RoboEnv(MuJoCoBase):
         is_windows = sys.platform.startswith('win')
         xml_path, urdf_path = self.get_paths(is_windows)
         super().__init__(xml_path)
+        self.stop_robot = False
         self.data = mujoco.MjData(self.model)
         self.start_time = time.time()
         self.joint_names = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
@@ -23,6 +24,8 @@ class RoboEnv(MuJoCoBase):
         self.robot_rtb = self.load_rtb_robot(urdf_path)
         self.reset_joints()
         self.j_vel_prev = np.zeros(7)
+        self.ee_max_reach = .43
+        
         print("---------all good loading robots------------")
 
     def get_paths(self, is_windows):
@@ -81,7 +84,7 @@ class RoboEnv(MuJoCoBase):
         ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
         force = np.dot(ft_ori_mat, self.data.sensordata[21:24])
         torque = np.dot(ft_ori_mat, self.data.sensordata[24:27])
-        return -np.concatenate([force, torque])
+        return -np.round(np.concatenate([force, torque]), 3)
 
     def get_ee_vel(self):
         ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
@@ -89,6 +92,33 @@ class RoboEnv(MuJoCoBase):
 
     def get_ee_position(self):
         return self.data.site_xpos[self.eef_site_id]
+
+    def get_ee_oriet(self):
+        return self.data.site_xmat[self.eef_site_id]
+
+    def get_ee_transform(self):
+        R= self.get_ee_oriet().reshape(3, 3)
+        # R = self.quat_to_rotation_matrix(quat)
+        return R
+
+    def get_ee_pose(self):
+        x = self.get_ee_position()
+        r = self.get_ee_transform()
+        x = np.reshape(x, (3, 1))
+        pose = np.eye(4)
+        pose[:3, :3] = r
+        pose[:3, 3] = x.flatten()
+        return x , r, pose
+
+
+    def quat_to_rotation_matrix(quat):
+        w, x, y, z = quat
+        R = np.array([
+            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
+        ])
+        return R
 
     def get_jacobian(self):
         jacp = np.zeros((3, self.model.nv))
@@ -144,9 +174,9 @@ class RoboEnv(MuJoCoBase):
     #           rbt
     ################################
 
-    def get_rtb_end_eff_pose(self):
-        q_mujoco = self.get_joint_positions()
-        pose = self.robot.fkine(q_mujoco)
+    def get_rtb_end_eff_pose(self,q):
+        # q_mujoco = self.get_joint_positions()
+        pose = self.robot.fkine(q)
         return pose, pose.t, pose.R
 
     def get_rtb_jacobian(self):
@@ -183,9 +213,14 @@ class RoboEnv(MuJoCoBase):
         glfw.poll_events()
 
     def run(self, control_input):
-        self.data.ctrl[0:7] = control_input
-        mujoco.mj_step(self.model, self.data)
-        mujoco.mj_rnePostConstraint(self.model, self.data)
+        if self.stop_robot == False:
+            self.data.ctrl[0:7] = control_input
+            mujoco.mj_step(self.model, self.data)
+            mujoco.mj_rnePostConstraint(self.model, self.data)
+        else:
+            print("robot stopped")
+
+
         self.curr_time = time.time() - self.start_time
         self.update_sim()
 
