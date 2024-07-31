@@ -110,7 +110,7 @@ def mean_squared_error(x, y):
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    Tmax, dT = 10, 500
+    Tmax, dT = 10, 1000
     mpc = MPC(dt=dT)
     curr_robot_position = robot.data.site_xpos[0]
     x, y, z, rx, ry, rz = get_path(curr_robot_position, Tmax, dT)

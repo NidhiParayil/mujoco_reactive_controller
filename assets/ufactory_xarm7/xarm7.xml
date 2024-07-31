@@ -112,7 +112,7 @@
                     <body name="end_effector_dummy" pos="0.0 0.0 0" >
                     <site name="eef_site" pos="0 0. 0" rgba="1 0 0 1"/> 
                     <geom type="cylinder"  pos="0. 0 .004"  size=".005 .005 .005" rgba="1 0 0 1"/>
-                    <inertial pos="0 -0. -0."  mass="0.00001"
+                    <inertial pos="0 -0. -0."  mass="1"
                       diaginertia="0 0 0"/>
                     </body>
 
@@ -238,6 +238,7 @@
 <force name="robot0:eef_force" site="eef_site" cutoff="1000"/>
 <torque name="robot0:eef_torque" site="eef_site" cutoff="1000"/>
 <velocimeter name= "robot0:eff_vel" site="eef_site"/>
+<accelerometer  name= "robot0:eff_acc" site="eef_site"/>
 </sensor>
 
   <!-- <keyframe>

@@ -1,41 +1,24 @@
 import time
-import cvxopt
 import numpy as np
 from urdfpy import URDF
 from spatialmath import SE3
 import spatialmath as sm
 import roboticstoolbox as rtb
 import spatialmath.base as base
-from qpsolvers import solve_qp
-from uncMPC import uncMPC
-import qpsolvers as qp
 from controller_performance import ControlPerformance
-import mpc_qp
-# from IPython.display import display, clear_output
 import cvxpy as cp
 
 
 
 class MPC:
     def __init__(self, dt):
-        cvxopt.solvers.options['show_progress'] = False
         self.n = 7  # Number of joints
         self.dt = dt
-        self.stop_time = dt
-        self.q0 = np.zeros(self.n)
-        self.initialize_constraints()
         self.initialize_storage()
         self.opt_ctrl = ControlPerformance("opt_ctrl")
         time.sleep(1)
         print("Start controller")
 
-    def initialize_constraints(self):
-        self.u_UB = np.array([10, 10, 10, 10, 10, 10, 10])
-        self.u_LB = -self.u_UB
-        self.q_UB = np.array([6.28319, 6.28319, 2.61799, 6.28319, 6.28319, 6.28319, 6.28319])
-        self.q_LB = -self.q_UB
-        self.joint_configs = np.zeros(self.n)
-        self.prev_u = np.zeros(8)
 
     def initialize_storage(self):
         self.arrived = False
@@ -55,46 +38,46 @@ class MPC:
         self.u = 0
 
     def get_next_torque(self, wrench, robot, target, target_vel):
-        self.Y = 1
-        self.Q = np.eye(self.n*2) * self.Y
+
         M = robot.get_M_()
     
         J = robot.get_jacobian()
-        A, B = np.zeros((14,14)), np.zeros((14,7))
-        A[0:7,0:7], B[0:7,0:7] = np.eye(7), np.eye(7)
+        A, B = np.zeros((7,7)), np.zeros((7,7))
+        Af, Bf = np.zeros((7,7)), np.zeros((7,7))
+        A, B = np.eye(7), np.eye(7)
 
-        A[7:14,7:14], B[7:14,0:7]= np.eye(7), M
-        dq_curr = robot.get_joint_vel()
-        joint_tor = robot.get_joint_torque_sensor()
+        Af, Bf = np.eye(7), M
+
+
         target_vel = target_vel + np.dot(np.linalg.pinv(M),( np.dot(J.T, wrench)))
-        x0 = robot.get_joint_positions()
-        Q= np.eye(7)
-        x_ref = np.zeros(14) 
-        x_ref[0:7] = target 
+
+        f_ref = np.dot(J.T, wrench) 
+        x_ref = target 
         T = 2
-        x = cp.Variable((14,T+1))
+        x = cp.Variable((7,T+1))
+        f = cp.Variable((7,T+1))
         u = cp.Variable((7,T)) # u is joint velocity
         cost = 0
         constr = []
         R = np.eye(7)
-        P = np.eye(14)
-        q = np.zeros(14)
-        q[0:7] = robot.get_joint_positions()
-        P = np.eye(14)*.1
-        G = np.eye(7)*.2
+        # P = np.eye(14)
+        # q = np.zeros(14)
+        q = robot.get_joint_positions()
+        # q[7:14] = -np.dot(J.T, wrench)
+        P = np.eye(7)*2
+        F = np.eye(7)*1
+        G = np.eye(7)*1
         P = P.T @ P
         G = G.T @G
   
         for t in range(T):
-            cost += cp.quad_form(x[:, t + 1] -x_ref, P)  + cp.quad_form(u[:, t], G)
+            cost += cp.quad_form(x[:, t + 1] -x_ref, P) + cp.quad_form(f[:, t + 1] -f_ref, F) + cp.quad_form(u[:, t] , G)
             constr += [x[:, t + 1] == np.dot(A, q )+ B @ (u[:, t])]
+            constr += [f[:, t + 1] == Bf @ (u[:, t])]
             constr += [u[:,t] <= np.ones(7)*(1.5)]
             constr += [u[:,t] >= np.ones(7)*(-1.5)]
         problem = cp.Problem(cp.Minimize(cost), constr)
         problem.solve()
-        print(u[:,0].value)
-        print(target_vel)
-        print("=====")
         self.target_u.append(target_vel)
         self.calculated_u.append(u[:,0].value)
         self.cost.append(problem.value)
@@ -104,20 +87,6 @@ class MPC:
         self.wrench_sample = np.roll(self.wrench_sample, shift=-1, axis=0)
         self.wrench_sample[-1] = wrench
 
-    def compute_acceleration(self, wrench, robot, J, dq):
-        if np.abs(np.mean(wrench)) > 1:
-            ddq = robot.get_forward_dynamics(wrench)
-            acc = np.matmul(J, ddq)
-        else:
-            acc = np.zeros(6)
-        return acc
-
-    def setup_constraints(self, J, target_vel, robot):
-        Aeq = np.zeros((6, self.n))
-        beq = np.zeros(6)
-        Aeq[0:6, 0:7] = J
-        beq[0:6] = target_vel
-        return Aeq, beq
 
     def update_debug_values(self, J, wrench, Torque, robot):
         self.T.append(Torque)
@@ -183,7 +152,7 @@ class MPC:
         target_pos = q_k  +dq_k *dt
         dq_ext = self.get_next_torque(wrench, robot, target_pos, dq_k)
         
-        # dq_k =  dq_ext
+        dq_k =  dq_ext
         self.target_pos = (q_k+ dq_k*dt)
         curr_end_eff_position = robot.get_ee_position()
         robot.run(self.target_pos)

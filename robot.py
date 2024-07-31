@@ -24,7 +24,7 @@ class RoboEnv(MuJoCoBase):
         self.robot_rtb = self.load_rtb_robot(urdf_path)
         self.reset_joints()
         self.j_vel_prev = np.zeros(7)
-        self.ee_max_reach = .43
+        self.ee_max_reach = .6
         
         print("---------all good loading robots------------")
 
@@ -84,7 +84,15 @@ class RoboEnv(MuJoCoBase):
         ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
         force = np.dot(ft_ori_mat, self.data.sensordata[21:24])
         torque = np.dot(ft_ori_mat, self.data.sensordata[24:27])
-        return -np.round(np.concatenate([force, torque]), 3)
+        a= np.zeros(6)
+        a[0:3] = self.get_ee_acc()
+         # mass is one
+        return np.round(np.concatenate([force, torque])-a, 3)
+
+    def get_ee_acc(self):
+        ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
+        return np.dot(ft_ori_mat, self.data.sensordata[30:33])
+
 
     def get_ee_vel(self):
         ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
@@ -174,8 +182,8 @@ class RoboEnv(MuJoCoBase):
     #           rbt
     ################################
 
-    def get_rtb_end_eff_pose(self,q):
-        # q_mujoco = self.get_joint_positions()
+    def get_rtb_end_eff_pose(self):
+        q_mujoco = self.get_joint_positions()
         pose = self.robot.fkine(q)
         return pose, pose.t, pose.R
 
@@ -195,6 +203,12 @@ class RoboEnv(MuJoCoBase):
         T = np.dot(M,ddq) +np.dot(C, dq) +G
         return T
 
+    def get_rtb_fk(self, q):
+        pose = self.robot.fkine(q)
+        return pose, pose.t, pose.R
+
+    def get_rtb_ik(self, pose):
+        pass
 
 
 
