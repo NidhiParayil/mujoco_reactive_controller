@@ -99,7 +99,10 @@ class RoboEnv(MuJoCoBase):
         return np.dot(ft_ori_mat, self.data.sensordata[27:30])
 
     def get_ee_position(self):
+        ft_ori_mat = self.data.site_xmat[self.eef_site_id].reshape(3, 3)
         return self.data.site_xpos[self.eef_site_id]
+        # id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM,"link7")
+        # return self.data.geom_xpos[id]
 
     def get_ee_oriet(self):
         return self.data.site_xmat[self.eef_site_id]
@@ -227,12 +230,12 @@ class RoboEnv(MuJoCoBase):
         glfw.poll_events()
 
     def run(self, control_input):
-        if self.stop_robot == False:
-            self.data.ctrl[0:7] = control_input
-            mujoco.mj_step(self.model, self.data)
-            mujoco.mj_rnePostConstraint(self.model, self.data)
-        else:
-            print("robot stopped")
+        # if self.stop_robot == False:
+        self.data.ctrl[0:7] = control_input
+        mujoco.mj_step(self.model, self.data)
+        mujoco.mj_rnePostConstraint(self.model, self.data)
+        # else:
+        #     print("robot stopped")
 
 
         self.curr_time = time.time() - self.start_time
