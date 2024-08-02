@@ -99,10 +99,10 @@ class MuJoCoBase():
 
     def simulate(self):
         while not glfw.window_should_close(self.window):
-            simstart = self.data.time
+            self.simstart = self.data.time
 
-            while (self.data.time - simstart < 1.0):
-                mj.mj_step(self.model, self.data)
+            # while (self.data.time - self.simstart < 1.0/60):
+            mj.mj_step(self.model, self.data)
 
             # get framebuffer viewport
             viewport_width, viewport_height = glfw.get_framebuffer_size(

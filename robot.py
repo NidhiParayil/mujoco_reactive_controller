@@ -242,6 +242,8 @@ class RoboEnv(MuJoCoBase):
         self.update_sim()
 
 
+
+
 if __name__ == '__main__':
     print("Testing robot.py setup")
     env = RoboEnv()

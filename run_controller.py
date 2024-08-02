@@ -11,7 +11,7 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
     colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
     plts = [axs[0,0],axs[0,1],axs[1,0],axs[1,1]]
     # Plot each set of data in the corresponding subplot
-    print(y_array[0])
+
     for y, ax, lb in zip(y_array, plts, y_labels):
         for i in range(y.shape[1]):
             ax.scatter(x, y[:, i], color=colors[i % len(colors)], s=3)
@@ -35,8 +35,8 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    Tmax, dT = 10, 300
-    mpc = MPC(dt=dT)
+    dt, steps = 1/10, 300
+    mpc = MPC(dt=dt)
     curr_robot_position = robot.data.site_xpos[0]
     start_time = time.time()
     np.random.seed(42)
@@ -44,9 +44,8 @@ if __name__ == '__main__':
     target_vel = [1, 0., 0., 0, 0, 0.]
     ee_position = robot.get_ee_position()
     # print("position", ee_position)
-    target_position = [ee_position[0] + .3, ee_position[1], ee_position[2]]
     __, _, robot_ee_ini_pose = robot.get_ee_pose()
-    for i in range(0, dT):
+    for i in range(0, steps):
         mpc.resolve_rate_controller(robot, target_vel, robot_ee_ini_pose)
 
     actuator_torque = np.asarray(mpc.actuator_torque)

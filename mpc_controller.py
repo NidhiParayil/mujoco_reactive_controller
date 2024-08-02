@@ -13,18 +13,19 @@ import cvxpy as cp
 class MPC:
     def __init__(self, dt):
         self.n = 7  # Number of joints
-        self.dt = dt
+        self.dt_opt = dt
         self.initialize_storage()
         self.opt_ctrl = ControlPerformance("opt_ctrl")
         time.sleep(1)
         print("Start controller")
-        self.Ax, self.Bx, self.Af, self.Bf = np.eye(3), np.eye(3), np.eye(3), np.eye(3)
+        self.Ax, self.Bx, self.Af, self.Bf = np.eye(3), np.eye(3)*self.dt_opt, np.eye(3), np.eye(3)/self.dt_opt
         self.R = np.eye(self.n)
-        self.P = np.eye(3)*5
+        self.P = np.eye(3)*1000
         self.F = np.eye(3)*100
-        self.G = np.eye(3)*1
+        self.G = np.eye(3)*100
         self.P = self.P.T @ self.P
         self.G = self.G.T @self.G
+        self.F = self.F.T @self.F
     
 
     def initialize_storage(self):
@@ -49,13 +50,17 @@ class MPC:
         cost = 0
         constr = []   
         x0 = robot.get_ee_position()
+        v0 = robot.get_ee_vel()
+
         for t in range(self.T_opt):
             cost += cp.quad_form(x[:, t + 1] -x_ref, self.P) + cp.quad_form(f[:, t + 1] -f_ref, self.F) + cp.quad_form(u[:, t] , self.G)
             constr += [x[:, t + 1] == np.dot(self.Ax, x0 )+ self.Bx @ (u[:, t])]
-            constr += [f[:, t + 1] == self.Bf @ (u[:, t])]
-            constr += [u[:,t] <= np.ones(3)*(1.5)]
-            constr += [u[:,t] >= np.ones(3)*(-1.5)]
+            constr += [f[:, t + 1] == self.Bf @ (u[:, t])+ v0]
+            constr += [u[:,t] <= np.ones(3)*(10)]
+            constr += [u[:,t] >= np.ones(3)*(-10)]
         problem = cp.Problem(cp.Minimize(cost), constr)
+        print(x0)
+        print(target_pos)
         problem.solve()
         self.opt_u.append(u[:,0].value)
         self.opt_cost.append(problem.value)
@@ -100,15 +105,16 @@ class MPC:
         next_ee_vel = np.zeros(6)
         desired_ee_vel = np.asarray(desired_ee_vel)[0:3]
         curr_end_eff_position = robot.get_ee_position()
-        desired_ee_position = curr_end_eff_position + desired_ee_vel 
+        desired_ee_position = curr_end_eff_position + desired_ee_vel *self.dt_opt
         wrench = robot.get_ee_wrench()
         force = np.asarray(wrench[0:3])
         next_ee_vel[0:3] = self.get_optimal_vel(force, robot, desired_ee_position, desired_ee_vel)
         q_curr = robot.get_joint_positions()
         target_dq = np.matmul(pnv_j, next_ee_vel)
         target_q = (q_curr+ target_dq)
-        
-        robot.run(target_q)
+        start_time = time.time()
+        while (time.time() - start_time < self.dt_opt):
+            robot.run(target_q)
         Torque = robot.get_joint_torque_mujoco()
         self.update_debug_values(J, Torque, robot, target_dq, target_q, desired_ee_position, desired_ee_vel)
         if curr_end_eff_position[0]>robot.ee_max_reach:
