@@ -19,10 +19,9 @@ class MPC:
         time.sleep(1)
         print("Start controller")
         self.Ax, self.Bx, self.Af, self.Bf = np.eye(3), np.eye(3)*self.dt_opt, np.eye(3), np.eye(3)/self.dt_opt
-        self.R = np.eye(self.n)
         self.P = np.eye(3)*1000
         self.F = np.eye(3)*100
-        self.G = np.eye(3)*100
+        self.G = np.eye(3)*1
         self.P = self.P.T @ self.P
         self.G = self.G.T @self.G
         self.F = self.F.T @self.F
@@ -99,13 +98,14 @@ class MPC:
         self.sensor_wrench.append(robot.get_ee_wrench())
                
 
-    def resolve_rate_controller(self, robot, desired_ee_vel, robot_ee_pose):
+    def resolve_rate_controller(self, robot, desired_ee_vel, robot_ee_pose, start_time):
         J = robot.get_jacobian()
         pnv_j = np.linalg.pinv(J)
         next_ee_vel = np.zeros(6)
         desired_ee_vel = np.asarray(desired_ee_vel)[0:3]
         curr_end_eff_position = robot.get_ee_position()
-        desired_ee_position = curr_end_eff_position + desired_ee_vel *self.dt_opt
+        robot_ee_pose = [.14,0,.5]
+        desired_ee_position = [.14,0,.5] + desired_ee_vel *(time.time()-start_time)
         wrench = robot.get_ee_wrench()
         force = np.asarray(wrench[0:3])
         next_ee_vel[0:3] = self.get_optimal_vel(force, robot, desired_ee_position, desired_ee_vel)

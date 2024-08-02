@@ -65,7 +65,7 @@ class RoboEnv(MuJoCoBase):
         return robot
 
     def reset_joints(self):
-        angles = [0, -1, 0, 0, 0.0, np.pi/3, 0]
+        angles = [0, -1.5, 0, 0, 0.0, 0, 0]
         for joint, ang in zip(self.joint_ids, angles):
             self.data.qpos[joint] = ang
         mujoco.mj_forward(self.model, self.data)

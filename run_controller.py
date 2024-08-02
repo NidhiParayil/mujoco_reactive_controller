@@ -35,18 +35,18 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
 if __name__ == '__main__':
     print("testing robot.py setup")
     robot = RoboEnv()
-    dt, steps = 1/10, 300
+    dt, steps = 1/10, 100
     mpc = MPC(dt=dt)
     curr_robot_position = robot.data.site_xpos[0]
     start_time = time.time()
     np.random.seed(42)
     target_pose = np.random.uniform(-np.pi/2, np.pi/2, size=7)
-    target_vel = [1, 0., 0., 0, 0, 0.]
+    target_vel = [.1, 0., 0., 0, 0, 0.]
     ee_position = robot.get_ee_position()
     # print("position", ee_position)
     __, _, robot_ee_ini_pose = robot.get_ee_pose()
     for i in range(0, steps):
-        mpc.resolve_rate_controller(robot, target_vel, robot_ee_ini_pose)
+        mpc.resolve_rate_controller(robot, target_vel, robot_ee_ini_pose, start_time)
 
     actuator_torque = np.asarray(mpc.actuator_torque)
     wrench_jac = np.asarray(mpc.wrench_jac)
