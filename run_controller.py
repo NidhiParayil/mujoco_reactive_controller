@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import time
 
 
-def generate_save_plt(x, y_array, y_labels, time1, time2, title, additional):
+def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additional):
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))
     plt.grid(True)
     colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
@@ -18,7 +18,7 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, additional):
         ax.set_xlabel("time")
         ax.set_ylabel(lb)
     for ax in axs.flat:
-        ax.legend(["x","y","z"])
+        ax.legend(legend)
 
     if additional is not None:
         for y, idx in zip(additional, range(len(additional))):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     start_time = time.time()
     np.random.seed(42)
     target_pose = np.random.uniform(-np.pi/2, np.pi/2, size=7)
-    target_vel = [0.5, 0., 0., 0, 0, 0.]
+    target_vel = [1, 0., 0., 0, 0, 0.]
     ee_position = robot.get_ee_position()
     # print("position", ee_position)
     target_position = [ee_position[0] + .3, ee_position[1], ee_position[2]]
@@ -79,8 +79,8 @@ if __name__ == '__main__':
 
     generate_save_plt(time_sim, [ee_curr_pos, ee_curr_vel, ee_curr_force, ee_curr_acc], 
                       ["pos", "vel", "force", "acc"], 
-                      time_sim[0], time_sim[-1], "End effector current"+controller, None)
+                      time_sim[0], time_sim[-1], "End effector current"+controller,["x","y","z"], [ee_des_pos, ee_des_vel])
 
     generate_save_plt(time_sim, [joint_curr_pos,joint_curr_vel,joint_curr_torque,joint_curr_acc], 
                       ["pos", "vel", "force", "acc"], 
-                      time_sim[0], time_sim[-1], " joint space"+ controller, None)
+                      time_sim[0], time_sim[-1], " joint space"+ controller,["1","2","3","4","5","7"], None)

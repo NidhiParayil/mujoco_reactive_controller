@@ -20,7 +20,7 @@ class MPC:
         print("Start controller")
         self.Ax, self.Bx, self.Af, self.Bf = np.eye(3), np.eye(3), np.eye(3), np.eye(3)
         self.R = np.eye(self.n)
-        self.P = np.eye(3)*2
+        self.P = np.eye(3)*5
         self.F = np.eye(3)*100
         self.G = np.eye(3)*1
         self.P = self.P.T @ self.P
@@ -99,14 +99,15 @@ class MPC:
         pnv_j = np.linalg.pinv(J)
         next_ee_vel = np.zeros(6)
         desired_ee_vel = np.asarray(desired_ee_vel)[0:3]
-        desired_ee_position = robot_ee_pose[3, 0:3] + desired_ee_vel *robot.curr_time
+        curr_end_eff_position = robot.get_ee_position()
+        desired_ee_position = curr_end_eff_position + desired_ee_vel 
         wrench = robot.get_ee_wrench()
         force = np.asarray(wrench[0:3])
         next_ee_vel[0:3] = self.get_optimal_vel(force, robot, desired_ee_position, desired_ee_vel)
         q_curr = robot.get_joint_positions()
         target_dq = np.matmul(pnv_j, next_ee_vel)
         target_q = (q_curr+ target_dq)
-        curr_end_eff_position = robot.get_ee_position()
+        
         robot.run(target_q)
         Torque = robot.get_joint_torque_mujoco()
         self.update_debug_values(J, Torque, robot, target_dq, target_q, desired_ee_position, desired_ee_vel)
