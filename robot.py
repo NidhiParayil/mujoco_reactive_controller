@@ -24,7 +24,7 @@ class RoboEnv(MuJoCoBase):
         self.robot_rtb = self.load_rtb_robot(urdf_path)
         self.reset_joints()
         self.j_vel_prev = np.zeros(7)
-        self.ee_max_reach = .6
+        self.ee_max_reach = .4
         
         print("---------all good loading robots------------")
 
@@ -65,7 +65,7 @@ class RoboEnv(MuJoCoBase):
         return robot
 
     def reset_joints(self):
-        angles = [0, -1.5, 0, 0, 0.0, 0, 0]
+        angles = [0, -np.pi/2, 0, 0, 0, np.pi/2, 0]
         for joint, ang in zip(self.joint_ids, angles):
             self.data.qpos[joint] = ang
         mujoco.mj_forward(self.model, self.data)
@@ -230,12 +230,12 @@ class RoboEnv(MuJoCoBase):
         glfw.poll_events()
 
     def run(self, control_input):
-        # if self.stop_robot == False:
-        self.data.ctrl[0:7] = control_input
-        mujoco.mj_step(self.model, self.data)
-        mujoco.mj_rnePostConstraint(self.model, self.data)
-        # else:
-        #     print("robot stopped")
+        if self.stop_robot == False:
+            self.data.ctrl[0:7] = control_input
+            mujoco.mj_step(self.model, self.data)
+            mujoco.mj_rnePostConstraint(self.model, self.data)
+        else:
+            print("robot stopped")
 
 
         self.curr_time = time.time() - self.start_time
