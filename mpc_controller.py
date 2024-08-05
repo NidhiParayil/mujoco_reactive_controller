@@ -22,9 +22,15 @@ class MPC:
         self.P = np.eye(3)*100
         self.F = np.eye(3)*.1
         self.G = np.eye(3)*1
+        self.H = np.eye(3)*.1
+
         self.P = self.P.T @ self.P
         self.G = self.G.T @self.G
         self.F = self.F.T @self.F
+        self.H = self.H.T @self.H
+
+        self.prev_u = np.zeros(3)
+
     
 
     def initialize_storage(self):
@@ -50,13 +56,13 @@ class MPC:
         constr = []   
         x0 = robot.get_ee_position()
         v0 = robot.get_ee_vel()
-        print("wrench", wrench)
+        # print("wrench", wrench)
         for t in range(self.T_opt):
-            cost += cp.quad_form(x[:, t + 1] -x_ref, self.P) + cp.quad_form(f[:, t + 1] -f_ref, self.F) + cp.quad_form(u[:, t] , self.G)
+            cost += cp.quad_form(x[:, t + 1] -x_ref, self.P) + cp.quad_form(f[:, t + 1] -f_ref, self.F) + cp.quad_form(u[:, t] , self.G) + cp.quad_form(u[:, t] -self.prev_u, self.H)
             constr += [x[:, t + 1] == np.dot(self.Ax, x0 )+ self.Bx @ (u[:, t])]
             constr += [f[:, t + 1] == self.Bf @ (u[:, t]- v0)]
-            constr += [u[:,t] <= np.ones(3)*(10)]
-            constr += [u[:,t] >= np.ones(3)*(-10)]
+            constr += [u[:,t] <= np.ones(3)*(3)]
+            constr += [u[:,t] >= np.ones(3)*(-3)]
         problem = cp.Problem(cp.Minimize(cost), constr)
         # print(x0)
         # print(target_pos)
@@ -69,8 +75,9 @@ class MPC:
         self.opt_f_ref.append(f_ref)
         self.opt_error_f.append(f[:, 0].value -f_ref)
         self.opt_error_x.append(x[:, 0].value -x_ref)
-        self.opt_x.append(x[:,0])
-        self.opt_f.append(f[:,0])
+        self.opt_x.append(x[:,0].value)
+        self.opt_f.append(f[:,0].value)
+        self.prev_u = u[:,0].value 
         return u[:,0].value 
 
 
@@ -105,11 +112,13 @@ class MPC:
         desired_ee_vel = np.asarray(desired_ee_vel)[0:3]
         curr_end_eff_position = robot.get_ee_position()
         robot_ee_pose = [.14,0,.5]
+        # print(curr_end_eff_position)
         desired_ee_position = curr_end_eff_position + desired_ee_vel * self.dt_opt#*(time.time()-start_time)
         wrench = robot.get_ee_wrench()
         force = np.asarray(wrench[0:3])
         next_ee_vel[0:3] = self.get_optimal_vel(force, robot, desired_ee_position, desired_ee_vel)
         q_curr = robot.get_joint_positions()
+        
         target_dq = np.matmul(pnv_j, next_ee_vel)
         target_q = (q_curr+ target_dq)
         start_time = time.time()

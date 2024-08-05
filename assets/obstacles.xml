@@ -9,15 +9,19 @@
 <geom type="box" pos="-.2 0.5 0.2" size=".005 .005 .3" rgba="0 .9 0 .5"/>
 <geom type="box"  pos="0.2 0 .1"  size=".5 .5 .005" rgba="0 .9 0 .5"/>
 <geom type="sphere"  size=".01" rgba="1 0 0 .5"/>
-<body name ="tree" pos=".3 0 .3" quat="1 0 1. 0" >
-    <composite prefix="main branch" type="grid" count="40 1 1" spacing="0.016" offset="0 0 0">
+<!-- <body name = "rigid_movable" pos = ".33 0 .6">
+<geom type="box"  pos="0 0 0"  size=".1 .1 .1" rgba="1 .0 0 .7" mass="100"/>
+<joint type = "slide" range="0 0.2" axis = "1 0 0"/>
+</body> -->
+<body name ="tree" pos=".3 -0.05 .35" quat="1 0 1. 0" >
+    <composite prefix="main branch" type="grid" count="50 1 1" spacing="0.016" offset="0 0 0">
     <joint kind="main" damping="150"/>
     <tendon kind="main" width="0.01"/>
     <geom size=".015" rgba=".3 .17 .14 1"/>
     <pin coord="10"/>
     <pin coord="8"/>
     </composite>
-    <body name="side branch" pos="0. -0.01 .0" quat="0.7 0. 0. 0.7" >
+    <body name="side branch" pos="-.1 -0.01 .0" quat="0.7 0. 0. 0.7" >
         <composite prefix="side branch" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
         <joint kind="main" damping="150"/>
         <tendon kind="main" width="0.01"/>
@@ -26,7 +30,7 @@
         <pin coord="6"/>
         </composite>
     </body>
-    <body name="side branch2" pos="-.1 -0.01 .0" quat="0.7 0. 0. 0.7" >
+    <body name="side branch2" pos="-.23 -0.01 .0" quat="0.7 0. 0. 0.7" >
         <composite prefix="side branch2" type="grid" count="15 1 1" spacing="0.016" offset="0 0 0">
         <joint kind="main" damping="150"/>
         <tendon kind="main" width="0.01"/>
@@ -35,7 +39,7 @@
         <pin coord="6"/>
         </composite>
     </body>
-    <body name="side branch3" pos="-.2 -0.01 .0" quat="0.7 0. 0. 0.7" >
+    <body name="side branch3" pos="-.3 -0.01 .0" quat="0.7 0. 0. 0.7" >
             <composite prefix="side branch3" type="grid" count="10 1 1" spacing="0.016" offset="0 0 0">
             <joint kind="main" damping="150"/>
             <tendon kind="main" width="0.01"/>
@@ -76,7 +80,7 @@
         </body> -->
     
 </body>
-<body name ="tree2" pos="1.36 -0.05 .3" quat="1 0 1. 0" >
+<body name ="tree2" pos="1.36 -0.0 .3" quat="1 0 1. 0" >
     <composite prefix="main branch2" type="grid" count="30 1 1" spacing="0.016" offset="0 0 0">
     <joint kind="main" damping="150"/>
     <tendon kind="main" width="0.01"/>

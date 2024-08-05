@@ -65,7 +65,7 @@ class RoboEnv(MuJoCoBase):
         return robot
 
     def reset_joints(self):
-        angles = [0, -np.pi/2, 0, 0, 0, np.pi/2, 0]
+        angles = [0, -np.pi/2, 0, 0, 0, np.pi/6, 0]
         for joint, ang in zip(self.joint_ids, angles):
             self.data.qpos[joint] = ang
         mujoco.mj_forward(self.model, self.data)
@@ -230,6 +230,7 @@ class RoboEnv(MuJoCoBase):
         glfw.poll_events()
 
     def run(self, control_input):
+        # control_input[5] = 0
         if self.stop_robot == False:
             self.data.ctrl[0:7] = control_input
             mujoco.mj_step(self.model, self.data)

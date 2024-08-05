@@ -13,8 +13,12 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
     # Plot each set of data in the corresponding subplot
 
     for y, ax, lb in zip(y_array, plts, y_labels):
-        for i in range(y.shape[1]):
-            ax.scatter(x, y[:, i], color=colors[i % len(colors)], s=3)
+        print(y)
+        if y.ndim == 2:
+            for i in range(y.shape[1]):
+                ax.scatter(x, y[:, i], color=colors[i % len(colors)], s=3)
+        else:
+            ax.scatter(x, y, s=3)
         ax.set_xlabel("time")
         ax.set_ylabel(lb)
     for ax in axs.flat:
@@ -22,8 +26,11 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
 
     if additional is not None:
         for y, idx in zip(additional, range(len(additional))):
-            for j in range(y.shape[1]):
-                plts[idx].scatter(x, y[:, j],marker="o", color=colors[j % len(colors)], s=3)
+            if y.ndim == 2:
+                for j in range(y.shape[1]):
+                    plts[idx].scatter(x, y[:, j],marker="o", color=colors[j % len(colors)], s=3)
+            else:
+                plts[idx].scatter(x, y,marker="o", s=3)
 
     fig.suptitle(title)
     plt.savefig(f'./plot_results/{title}.png')
@@ -69,6 +76,19 @@ if __name__ == '__main__':
     ee_des_vel = np.asarray(mpc.ee_des_vel)      
     sensor_wrench = np.asarray(mpc.sensor_wrench)
 
+    opt_u = np.asarray(mpc.opt_u)
+    opt_cost = np.asarray(mpc.opt_cost)
+    force_cost = np.asarray(mpc.force_cost)
+    x_cost = np.asarray(mpc.x_cost)
+    opt_x_ref = np.asarray(mpc.opt_x_ref)
+    opt_f_ref = np.asarray(mpc.opt_f_ref)
+    opt_error_f = np.asarray(mpc.opt_error_f)
+    opt_error_x = np.asarray(mpc.opt_error_x)
+    opt_x = np.asarray(mpc.opt_x)
+    opt_f = np.asarray(mpc.opt_f)
+
+
+
     controller = "optimal with force"
 
     # To do
@@ -83,3 +103,11 @@ if __name__ == '__main__':
     generate_save_plt(time_sim, [joint_curr_pos,joint_curr_vel,joint_curr_torque,joint_curr_acc], 
                       ["pos", "vel", "force", "acc"], 
                       time_sim[0], time_sim[-1], " joint space"+ controller,["1","2","3","4","5","7"], None)
+    generate_save_plt(time_sim, [opt_cost,force_cost,x_cost,opt_u], 
+                      ["total cost", "force", "x", "u"], 
+                      time_sim[0], time_sim[-1], "cost"+ controller,["- "], None)
+
+
+    generate_save_plt(time_sim, [opt_error_f, opt_error_x, opt_f, opt_x], 
+                    ["force_er", "x_er", "f", "x"], 
+                    time_sim[0], time_sim[-1], "f, x values and error"+ controller,["- "], [opt_f_ref, opt_x_ref])
