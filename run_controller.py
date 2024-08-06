@@ -13,8 +13,8 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
     # Plot each set of data in the corresponding subplot
 
     for y, ax, lb in zip(y_array, plts, y_labels):
-        print(y)
-        if y.ndim == 2:
+        # print(y)
+        if y.ndim != 1:
             for i in range(y.shape[1]):
                 ax.scatter(x, y[:, i], color=colors[i % len(colors)], s=3)
         else:
@@ -103,11 +103,49 @@ if __name__ == '__main__':
     generate_save_plt(time_sim, [joint_curr_pos,joint_curr_vel,joint_curr_torque,joint_curr_acc], 
                       ["pos", "vel", "force", "acc"], 
                       time_sim[0], time_sim[-1], " joint space"+ controller,["1","2","3","4","5","7"], None)
-    generate_save_plt(time_sim, [opt_cost,force_cost,x_cost,opt_u], 
-                      ["total cost", "force", "x", "u"], 
-                      time_sim[0], time_sim[-1], "cost"+ controller,["- "], None)
+    # generate_save_plt(time_sim, [force_er,x_er], 
+    #                   ["total cost", "force", "x", "u"], 
+    #                   time_sim[0], time_sim[-1], "cost"+ controller,["- "], None)
 
+    print(time_sim.shape, opt_error_f[0], opt_error_x.shape, opt_f.shape, opt_x.shape)
+    print(time_sim.shape, ee_curr_pos.shape, ee_curr_vel.shape, ee_curr_force.shape, ee_curr_acc.shape)
 
     generate_save_plt(time_sim, [opt_error_f, opt_error_x, opt_f, opt_x], 
                     ["force_er", "x_er", "f", "x"], 
                     time_sim[0], time_sim[-1], "f, x values and error"+ controller,["- "], [opt_f_ref, opt_x_ref])
+
+
+    # Store variables in a dictionary
+    variables_dict = {
+        'actuator_torque': actuator_torque,
+        'wrench_jac': wrench_jac,
+        'time_sim': time_sim,
+        'rtb_torque': rtb_torque,
+        'joint_curr_pos': joint_curr_pos,
+        'joint_curr_vel': joint_curr_vel,
+        'joint_curr_acc': joint_curr_acc,
+        'joint_curr_torque': joint_curr_torque,
+        'joint_des_pos': joint_des_pos,
+        'joint_des_vel': joint_des_vel,
+        'joint_des_torque': joint_des_torque,
+        'ee_curr_pos': ee_curr_pos,
+        'ee_curr_vel': ee_curr_vel,
+        'ee_curr_acc': ee_curr_acc,
+        'ee_curr_force': ee_curr_force,
+        'ee_des_pos': ee_des_pos,
+        'ee_des_vel': ee_des_vel,
+        'sensor_wrench': sensor_wrench,
+        'opt_u': opt_u,
+        'opt_cost': opt_cost,
+        'force_cost': force_cost,
+        'x_cost': x_cost,
+        'opt_x_ref': opt_x_ref,
+        'opt_f_ref': opt_f_ref,
+        'opt_error_f': opt_error_f,
+        'opt_error_x': opt_error_x,
+        'opt_x': opt_x,
+        'opt_f': opt_f
+    }
+
+    # Save the dictionary to a .npz file
+    np.savez('variables.npz', **variables_dict)

@@ -59,7 +59,7 @@ class MPC:
         # print("wrench", wrench)
         for t in range(self.T_opt):
             cost += cp.quad_form(x[:, t + 1] -x_ref, self.P) + cp.quad_form(f[:, t + 1] -f_ref, self.F) + cp.quad_form(u[:, t] , self.G) + cp.quad_form(u[:, t] -self.prev_u, self.H)
-            constr += [x[:, t + 1] == np.dot(self.Ax, x0 )+ self.Bx @ (u[:, t])]
+            constr += [x[:, t + 1] == self.Ax @ x0 + self.Bx @ (u[:, t])]
             constr += [f[:, t + 1] == self.Bf @ (u[:, t]- v0)]
             constr += [u[:,t] <= np.ones(3)*(3)]
             constr += [u[:,t] >= np.ones(3)*(-3)]
@@ -67,16 +67,20 @@ class MPC:
         # print(x0)
         # print(target_pos)
         problem.solve()
+        x_k_1  = np.dot(self.Ax, x0 )+np.dot( self.Bx,(u[:, 0].value))
+        f_k_1 = np.dot(self.Bf, (u[:, 0].value- v0))
+        x_er = x_k_1 - x_ref
+        f_er = f_k_1 - f_ref
         self.opt_u.append(u[:,0].value)
         self.opt_cost.append(problem.value)
-        self.force_cost.append(np.matmul((f[:, 0].value -f_ref).T,np.matmul(self.F, f[:, 0].value -f_ref)))
-        self.x_cost.append(np.matmul((x[:, 0].value -x_ref).T,np.matmul(self.P, x[:, 0].value -x_ref)))
+        self.force_cost.append(np.matmul((f_er).T,np.matmul(self.F, f_er)))
+        self.x_cost.append(np.matmul((x_er).T,np.matmul(self.P, x_er)))
         self.opt_x_ref.append(x_ref)
         self.opt_f_ref.append(f_ref)
-        self.opt_error_f.append(f[:, 0].value -f_ref)
-        self.opt_error_x.append(x[:, 0].value -x_ref)
-        self.opt_x.append(x[:,0].value)
-        self.opt_f.append(f[:,0].value)
+        self.opt_error_f.append(f_er)
+        self.opt_error_x.append(x_er)
+        self.opt_x.append(x_k_1)
+        self.opt_f.append(f_k_1)
         self.prev_u = u[:,0].value 
         return u[:,0].value 
 
