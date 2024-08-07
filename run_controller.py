@@ -9,6 +9,7 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))
     plt.grid(True)
     colors = ["green", "blue", "red", "cyan", "orange", "purple", "black"]
+    colors_ad = ["black","purple","orange","cyan","green","red", "blue" ]
     plts = [axs[0,0],axs[0,1],axs[1,0],axs[1,1]]
     # Plot each set of data in the corresponding subplot
 
@@ -28,9 +29,9 @@ def generate_save_plt(x, y_array, y_labels, time1, time2, title, legend, additio
         for y, idx in zip(additional, range(len(additional))):
             if y.ndim == 2:
                 for j in range(y.shape[1]):
-                    plts[idx].scatter(x, y[:, j],marker="o", color=colors[j % len(colors)], s=3)
+                    plts[idx].plot(x, y[:, j], color=colors[(j % len(colors_ad))])
             else:
-                plts[idx].scatter(x, y,marker="o", s=3)
+                plts[idx].plot(x, y)
 
     fig.suptitle(title)
     plt.savefig(f'./plot_results/{title}.png')
@@ -103,12 +104,9 @@ if __name__ == '__main__':
     generate_save_plt(time_sim, [joint_curr_pos,joint_curr_vel,joint_curr_torque,joint_curr_acc], 
                       ["pos", "vel", "force", "acc"], 
                       time_sim[0], time_sim[-1], " joint space"+ controller,["1","2","3","4","5","7"], None)
-    # generate_save_plt(time_sim, [force_er,x_er], 
-    #                   ["total cost", "force", "x", "u"], 
-    #                   time_sim[0], time_sim[-1], "cost"+ controller,["- "], None)
-
-    print(time_sim.shape, opt_error_f[0], opt_error_x.shape, opt_f.shape, opt_x.shape)
-    print(time_sim.shape, ee_curr_pos.shape, ee_curr_vel.shape, ee_curr_force.shape, ee_curr_acc.shape)
+    generate_save_plt(time_sim, [opt_cost, opt_u, opt_error_f,opt_error_x], 
+                      ["total cost", "force", "x", "u"], 
+                      time_sim[0], time_sim[-1], "cost"+ controller,["- "], None)
 
     generate_save_plt(time_sim, [opt_error_f, opt_error_x, opt_f, opt_x], 
                     ["force_er", "x_er", "f", "x"], 
