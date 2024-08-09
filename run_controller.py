@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import itertools
+import xml.etree.ElementTree as ET
 
 def generate_save_plt(x, y_array, y_stds,  y_labels, title, legend, additional=None):
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))
@@ -84,7 +85,7 @@ def run_simulation(robot,controller_type, control_param):
 
 def main():
 
-    num_runs = 5
+    num_runs = 1
     robot = RoboEnv()
     opt_param = [100, .1, 1, .1]
     pid_pos_param = [2,0,0]
@@ -92,6 +93,7 @@ def main():
     controller_types = ["pid_position", "pid_hybrid","optimizer"]
     control_parms = [pid_pos_param, pid_hybrid_param, opt_param] 
     obstacle = " plant "
+    # obstacle = ET.parse("")
     for ctrl, ctrl_param in zip( controller_types, control_parms):
         controller_type, control_param = ctrl, ctrl_param
         results_list = [run_simulation(robot,controller_type, control_param) for i in range(num_runs)]
