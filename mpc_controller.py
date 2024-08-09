@@ -47,9 +47,12 @@ class MPC:
             self.ki_pos = param[2]
 
         if self.controller_type == "pid_hybrid":
-            pass
-
-    
+            self.kp_hy_x = param[0]
+            self.kd_hy_x = param[1]
+            self.ki_hy_x = param[2]
+            self.kp_hy_f = param[3]
+            self.kd_hy_f = param[4]
+            self.ki_hy_f = param[5]            
 
     def initialize_storage(self):
         self.joint_curr_pos, self.joint_curr_vel, self.joint_curr_acc, self.joint_curr_torque = [], [], [], []
@@ -66,16 +69,37 @@ class MPC:
             self.pid_error_x, self.pid_x_ref, self.pid_u = [], [], []
             self.error_sum = 0
             self.error_prev = 0
+        if self.controller_type == "pid_hybrid":
+            self.pid_error_x, self.pid_x_ref, self.pid_u = [], [], []
+            self.pid_error_f_hy, self.pid_ref_f_hy, = [], []
+            self.error_sum = 0
+            self.error_prev = 0
+            self.error_sum_f = 0
+            self.error_prev_f = 0
 
-
-    def get_pid_pos_values(self, error, target):
+    def get_pid_pos_values(self, error):
         self.error_sum = error + self.error_sum
         u =  self.kp_pos*error + self.kd_pos/self.dt * (error-self.error_prev) + self.ki_pos * self.error_sum
         self.error_prev = error
         self.pid_error_x.append(error)
-        self.pid_x_ref.append(target)
+        
         self.pid_u.append(u)
         return u 
+
+
+    def get_pid_hybrid_values(self, er_x, er_f):
+        self.error_sum = er_x + self.error_sum
+        self.error_sum_f = er_f + self.error_sum_f
+        u =  self.kp_hy_x*er_x, + self.kd_hy_x/self.dt * (er_x-self.error_prev) + self.ki_hy_x * self.error_sum
+        u +=  self.kp_hy_f*er_f + self.kd_hy_f/self.dt * (er_f-self.error_prev_f) + self.ki_hy_f * self.error_sum_f
+        self.error_prev = er_x
+        self.error_prev_f = er_f
+        self.pid_error_x.append(er_x)
+        self.pid_u.append(u)
+        return u 
+
+
+
 
     def get_optimal_vel(self, wrench, robot, target_pos, target_vel):
         f_ref = wrench
@@ -114,6 +138,7 @@ class MPC:
         self.opt_x.append(x_k_1)
         self.opt_f.append(f_k_1)
         self.prev_u = u[:,0].value 
+        
         return u[:,0].value 
 
 
@@ -165,11 +190,24 @@ class MPC:
             ee_pos = np.zeros(6)
             error = (desired_ee_position - curr_end_eff_position)
             # print(error)
-            ee_pos[0:3] = self.get_pid_pos_values(desired_ee_position,error )
+            ee_pos[0:3] = self.get_pid_pos_values(error )
             delta_q = np.matmul(J.T,ee_pos)
             target_q  = delta_q + robot.get_joint_positions()
             target_dq= ee_pos[0:3]/self.dt
+            self.pid_x_ref.append(desired_ee_position)
 
+        if self.controller_type == "pid_hybrid":
+            desired_ee_position = robot_ee_pose + desired_ee_vel *(time.time()-start_time)
+            ee_pos = np.zeros(6)
+            # er_force = np.zeros(6)
+            er_force = wrench[0:3]
+            er_pos = (desired_ee_position - curr_end_eff_position)
+            self.pid_x_ref.append(desired_ee_position)
+            # print(er_pos, er_force )
+            ee_pos[0:3] = self.get_pid_hybrid_values(er_pos, er_force )[0]
+            delta_q = np.matmul(J.T,ee_pos)
+            target_q  = delta_q + robot.get_joint_positions()
+            target_dq= ee_pos[0:3]/self.dt
 
         start_time = time.time()
         while (time.time() - start_time < self.dt_opt):

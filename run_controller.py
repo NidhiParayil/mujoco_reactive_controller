@@ -84,11 +84,11 @@ def run_simulation(robot,controller_type, control_param):
 
 def main():
 
-    num_runs = 3
+    num_runs = 5
     robot = RoboEnv()
     opt_param = [100, .1, 1, .1]
     pid_pos_param = [2,0,0]
-    pid_hybrid_param = [0,0,0]
+    pid_hybrid_param = [2,0,0,.1,0,0]
     controller_types = ["pid_position", "pid_hybrid","optimizer"]
     control_parms = [pid_pos_param, pid_hybrid_param, opt_param] 
     obstacle = " plant "
